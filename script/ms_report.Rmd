@@ -1,0 +1,47 @@
+---
+title: "MsGenova Project: Data analysis on variant calling from Illumina data"
+author: "Gabrièle Adam"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+    html_document:
+        highlight: tango
+        number_sections: no
+        theme: default
+        toc: yes
+        toc_depth: 3
+        toc_float:
+            collapsed: no
+            smooth_scroll: yes
+params:
+    result_dir: result_dir
+    rmd: "report.Rmd"
+    sample: sample
+    DP.min: DP.min
+    AR.min: AR.min
+    region: region
+    multiqc: multiqc
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r load_library, echo=FALSE, warning=FALSE, error=FALSE}
+library(tidyverse)
+library(DT)
+library(ggplot2)
+```
+
+```{r define_params, echo=FALSE, warning=FALSE, error=FALSE}
+DP.min<-params$DP.min
+AR.min<-params$AR.min
+workspace<-params$result_dir
+region<-params$region
+multiqc<-params$multiqc
+print(region)
+```
+
+# Source
+<a download="report.Rmd" href="`r base64enc::dataURI(file = params$rmd, mime = 'text/rmd', encoding = 'base64')`">R Markdown source file (to produce this document)</a>
+<a download="MultiQC report" href="`r base64enc::dataURI(file = params$multiqc, mime = 'text/rmd', encoding = 'base64')`">MultiQC report in HTML formata</a>
+<a download="Report_snpeff.html" href="`r base64enc::dataURI(file = params$multiqc, mime = 'text/rmd', encoding = 'base64')`">HTML report obtained after snpeff on GenomicsVCF data</a>

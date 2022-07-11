@@ -1,0 +1,7 @@
+channel:
+ - bioconda
+ - defaults
+dependencies:
+ - fastqc
+ - multiqc
+ - trimmomatic

@@ -1,0 +1,69 @@
+############# Parameters for QC and trimming steps #############
+#params for trimmomatic
+params_trimmomatic: ""
+
+#params for fastqc
+params_fastqc: " --quiet "
+
+#parameters for multiqc
+params_multiqc: ""
+
+############# Parameters for alignment and bam filtering #############
+#params for bwa
+# B:Mismatch penalty. The sequence error rate is approximately: {.75 * exp[-log(4) * B/A]}, with A the matching score
+# T: Don’t output alignment with score lower than this
+params_bwa: " -B 4 -T 30"
+
+#params for sort_sam
+# CREATE INDEX: Whether to create a BAM index when writing a coordinate-sorted BAM file
+# VALIDATION STRINGENCY: Validation stringency for all SAM files read by this program. Setting stringency to SILENT can improve performance when processing a BAM file in which variable-length data (read, qualities, tags) do not otherwise need to be decoded.
+params_sort_sam: "--CREATE_INDEX TRUE --VALIDATION_STRINGENCY LENIENT"
+
+#parameters for mark duplicates
+params_mark_duplicate: ""
+
+#parameters for extraction of reads mapped only
+params_extra_mapped_reads: ""
+
+############# Parameters for indexation  #############
+#parameters for index on reference with bwa
+params_bwa_index_reference: ""
+
+#parameters for creation of dictionary on reference (meeded for HaplotypeCaller)
+params_create_dict_reference: ""
+
+#parameters index reference with samtools
+params_index_reference_samtools: ""
+
+#parameters for indexation of alignment with samtools
+params_index_alignment: ""
+
+############# Parameters for QC on alignment  steps #############
+#parameters for flagstat
+params_flagstat: ""
+
+#parameters for samtools coverage
+params_samtools_coverage: ""
+
+#parameters for samtools depth
+params_samtools_depth: ""
+
+############# Parameters for variant calling #############
+
+#Parameters for HaplotypeCaller
+params_haplotype_caller: " -ERC GVCF "
+
+# parameters for genomicsDB (replacement for CombineGVCF)
+params_genomics_db: ""
+
+#parameters for genotype gvcf
+params_genotype_gvcf: ""
+
+#parameters for gather vcf
+params_gathervcf: ""
+
+#parameters for creation of the database for snpeff
+params_snpeff_build: ""
+
+#parameters for annotation by snpeff
+params_snpeff_ann: ""

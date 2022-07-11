@@ -1,0 +1,5 @@
+channel:
+ - bioconda
+ - defaults
+dependencies:
+ - snpeff==5.0

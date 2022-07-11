@@ -1,0 +1,12 @@
+channel:
+ - conda-forge
+ - R
+ - bioconda
+ - defaults
+dependencies:
+ - r-base
+ - r-dt
+ - r-ggplot2 
+ - r-rmarkdown
+ - r-tidyverse
+ - pandoc

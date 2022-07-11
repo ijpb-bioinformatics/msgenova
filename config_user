@@ -1,0 +1,7 @@
+sample: "/shared/projects/camelina_pacbio_pipe/msgenova/sample_sheet"
+reference: "/shared/projects/camelina_pacbio_pipe/msgenova/Arabidopsis_Thaliana.fna"
+gff: "/shared/projects/camelina_pacbio_pipe/msgenova/Arabidopsis_Thaliana.gff"
+regions: "/shared/projects/camelina_pacbio_pipe/msgenova/regions.bed"
+project_name: "Project_Variant.MON projet	Recherche"
+cpu: "8"
+ram: "30G"

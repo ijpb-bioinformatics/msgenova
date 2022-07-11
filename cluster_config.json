@@ -1,0 +1,120 @@
+{
+    "__default__" :
+    {
+        "name" : "{rule}",
+        "output" : "results/00_logs/{rule}.out",
+        "error" : "results/00_logs/{rule}.err"
+    },
+    "multiqc":
+    {
+        "output" : "results/01_sequence_qc/log/{rule}.out",
+        "error" : "results/01_sequence_qc/log/{rule}.err"
+    },
+
+    "trimming":
+    {
+        "output" : "results/01_sequence_qc/log/{rule}.{wildcards.sample}.out",
+        "error" : "results/01_sequence_qc/log/{rule}.{wildcards.sample}.err"
+    },
+    "trimmed_fqc2":
+    {
+        "output" : "results/01_sequence_qc/log/{rule}.{wildcards.sample}.out",
+        "error" : "results/01_sequence_qc/log/{rule}.{wildcards.sample}.err"
+    },
+    "trimmed_fqc1":
+    {
+        "output" : "results/01_sequence_qc/log/{rule}.{wildcards.sample}.out",
+        "error" : "results/01_sequence_qc/log/{rule}.{wildcards.sample}.err"
+    },
+    "align":
+    {
+        "output" : "results/02_mapping/log/{rule}.{wildcards.sample}.out",
+        "error" : "results/02_mapping/log/{rule}.{wildcards.sample}.err"
+    },
+    "sort_sam":
+    {
+        "output" : "results/02_mapping/log/{rule}.{wildcards.sample}.out",
+        "error" : "results/02_mapping/log/{rule}.{wildcards.sample}.err"
+    },
+    "mark_duplicate":
+    {
+        "output" : "results/02_mapping/log/{rule}.{wildcards.sample}.out",
+        "error" : "results/02_mapping/log/{rule}.{wildcards.sample}.err"
+    },
+    "keep_mapped_only":
+    {
+        "output" : "results/02_mapping/log/{rule}.{wildcards.sample}.out",
+        "error" : "results/02_mapping/log/{rule}.{wildcards.sample}.err"
+    },
+    "flagstat":
+    {
+        "output" : "results/02_mapping/log/{rule}.{wildcards.sample}.out",
+        "error" : "results/02_mapping/log/{rule}.{wildcards.sample}.err"
+    },
+    "samtools_coverage":
+    {
+        "output" : "results/02_mapping/log/{rule}.{wildcards.sample}.out",
+        "error" : "results/02_mapping/log/{rule}.{wildcards.sample}.err"
+    },
+    "samtools_depth":
+    {
+        "error" : "results/02_mapping/log/{rule}.{wildcards.sample}.err",
+        "output" : "results/02_mapping/log/{rule}.{wildcards.sample}.out"
+    },
+    "get_genomic_region":
+    {
+        "output" : "results/00_logs/{rule}.out",
+        "error" : "results/00_logs/{rule}.err"
+    },
+    "samtools_index_reference":
+    {
+        "output" : "results/00_logs/{rule}.out",
+        "error" : "results/00_logs/{rule}.err"
+    },
+    "create_dict_reference":
+    {
+        "output" : "results/00_logs/{rule}.out",
+        "error" : "results/00_logs/{rule}.err"
+    },
+    "HaplotyCaller":
+    {
+        "output" : "results/03_snv_indels_calling/log/{rule}.{wildcards.sample}.{wildcards.regions}.out",
+        "error" : "results/03_snv_indels_calling/log/{rule}.{wildcards.sample}.{wildcards.regions}.err"
+    },
+    "GenomicsDB":
+    {
+        "output" : "results/03_snv_indels_calling/log/{rule}.{wildcards.regions}.out",
+        "error" : "results/03_snv_indels_calling/log/{rule}.{wildcards.regions}.err"
+    },
+    "Genotype_gvcf":
+    {
+        "output" : "results/03_snv_indels_calling/log/{rule}.{wildcards.regions}.out",
+        "error" : "results/03_snv_indels_calling/log/{rule}.{wildcards.regions}.err"
+    },
+    "gatherVCF":
+    {
+        "output" : "results/03_snv_indels_calling/log/{rule}.out",
+        "error" : "results/03_snv_indels_calling/log/{rule}.err"
+    },
+    "build_snpeff_db":
+    {
+        "output" : "results/00_logs/{rule}.out",
+        "error" : "results/00_logs/{rule}.err"
+    },
+    "annotate_variant":
+    {
+        "output" : "results/03_snv_indels_calling/log/{rule}.out",
+        "error" : "results/03_snv_indels_calling/log/{rule}.err"
+    },
+    "bwa_index_reference":
+    {
+        "output" : "results/00_logs/{rule}.out",
+        "error" : "results/00_logs/{rule}.err"
+    },
+
+    "report":
+    {
+        "results/06_report/log/{rule}.out",
+        "results/06_report/log/{rule}.out"
+    }
+}

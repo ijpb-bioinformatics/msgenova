@@ -1,0 +1,14 @@
+#!/bin/bash
+module load snakemake/6.14.0
+#--conda-prefix
+path=$2 # result dir
+config=$1 # config file
+pipeline_path=$(dirname $0) # path of pipeline source
+
+path="/shared/projects/camelina_pacbio_pipe/msgenova"
+config="/shared/projects/camelina_pacbio_pipe/msgenova"
+pipeline_path="/shared/projects/camelina_pacbio_pipe/msgenova"
+
+sbatch snakemake -p --snakefile ${pipeline_path}/Snakefile --config repo_script=${pipeline_path} --configfile $path/config_user --cluster-config ${pipeline_path}/cluster_config.json --cluster "sbatch --output {cluster.output} --error {cluster.error} --cpus-per-task {threads} --job-name {rule} --mem {resources.mem_mb} " --jobs 200 --latency-wait 90 --use-envmodules --use-conda --stats stat.json  --directory $path >& snakemake.log
+
+

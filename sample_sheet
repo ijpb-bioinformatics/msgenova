@@ -1,0 +1,3 @@
+sample	condition	fq1	fq2
+S1	reference	/shared/projects/camelina_pacbio_pipe/msgenova/data/SRR5265158_1.fastq.gz	/shared/projects/camelina_pacbio_pipe/msgenova/data/SRR5265158_2.fastq.gz
+S2	mt	/shared/projects/camelina_pacbio_pipe/msgenova/data/SRR5265159_1.fastq.gz	/shared/projects/camelina_pacbio_pipe/msgenova/data/SRR5265159_2.fastq.gz
