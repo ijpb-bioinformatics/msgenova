@@ -1,5 +1,18 @@
 def get_region(wildcards):
-	return wildcards.regions
+	x= dict_chr.get(str(wildcards.regions))
+	#print("essai dictionaire")
+	#print(wildcards.regions)
+	#for key in dict_chr.keys():
+	#	print("Key :"+str(key))
+	#for val in dict_chr.values():
+	#	print("Value :"+str(val))
+	#print("test keys")
+	#if wildcards.regions in dict_chr.keys():
+	#	print("in the list")
+	#else:
+	#	print("not in the list")
+	print(x)
+	return x
 
 rule HaplotyCaller:
 	"""
@@ -12,22 +25,21 @@ rule HaplotyCaller:
 		dict="results/genome/"+REF_NAME+".dict",
 		bai="results/02_mapping/bam/{sample}.bam.bai"
 	output:
-		vcf="results/03_snv_indels_calling/{sample}.{regions}.g.vcf"
+		vcf=temp("results/03_snv_indels_calling/{sample}.{regions}.g.vcf")
 	conda:
 		"../envs/gatk4.yaml"
 	threads: get_thread
 	params:
 		extra=config["params_haplotype_caller"],
-		regions= lambda wildcards,output: get_region(wildcards)
+		#regions= lambda wildcards,output: get_region(wildcards)
+		#region=dict_chr.get(wildcards.regions)
+		regions=get_region
 	resources:
 		mem_mb=config["ram"]
 	shell:
 		"""
 		 gatk --java-options -Xmx{resources.mem_mb} HaplotypeCaller -R {input.ref} -I {input.bam} -O {output.vcf} -L {params.regions} --native-pair-hmm-threads {threads} {params.extra}
 		"""
-
-def get_region_genomicdb(wildcards):
-	return wildcards.regions
 
 rule GenomicsDB:
 	"""
@@ -36,12 +48,13 @@ rule GenomicsDB:
 	input:
 		expand("results/03_snv_indels_calling/{s.sample}.{{regions}}.g.vcf",s=SAMPLE.itertuples()),
 	output:
-		dir=directory("results/03_snv_indels_calling/genomicDB_{regions}"),
+		dir=temp(directory("results/03_snv_indels_calling/genomicDB_{regions}")),
 		json="results/03_snv_indels_calling/genomicDB_{regions}/callset.json",
 		vcf="results/03_snv_indels_calling/genomicDB_{regions}/vcfheader.vcf",
 		vidmap="results/03_snv_indels_calling/genomicDB_{regions}/vidmap.json"
 	params:
-		region=get_region_genomicdb,
+		region=get_region,
+		#region=get_region_genomicdb,
 		extra=config["params_genomics_db"]
 	conda:
 		"../envs/gatk4.yaml"
@@ -62,6 +75,13 @@ rule GenomicsDB:
 		gatk --java-options -Xmx{resources.mem_mb} GenomicsDBImport $variant --genomicsdb-workspace-path {output.dir} --intervals {params.region} {params.extra}
 		"""
 
+#def get_input_genotype_gvcf(wildcards):
+#	if bool_region == True:
+#		return expand("results/03_snv_indels_calling/genomicDB_regions/{file}",file=["callset.json","vcfheader.vcf","vidmap.json"])
+#	else:
+#		return expand("results/03_snv_indels_calling/genomicDB_{regions}/{file}",file=["callset.json","vcfheader.vcf","vidmap.json"],regions=LIST_REGION_HAPLOTYPECALLER),
+#
+
 rule Genotype_gvcf:
 	"""
 	Genotype samples using gatk GenotypeGVCFs
@@ -69,11 +89,11 @@ rule Genotype_gvcf:
 	input:
 		ref="results/genome/"+REF_NAME+".fasta",
 		dir="results/03_snv_indels_calling/genomicDB_{regions}/",
-		#dir="results/03_snv_indels_calling/genomicDB",
 		#db=expand("results/03_snv_indels_calling/genomicDB/{file}",file=["callset.json","vcfheader.vcf","vidmap.json"]),
 		db=expand("results/03_snv_indels_calling/genomicDB_{regions}/{file}",file=["callset.json","vcfheader.vcf","vidmap.json"],regions=LIST_REGION_HAPLOTYPECALLER),
 	output:
-		"results/03_snv_indels_calling/variants.{regions}.vcf"
+		vcf=temp("results/03_snv_indels_calling/variants.{regions}.vcf"),
+		idx=temp("results/03_snv_indels_calling/variants.{regions}.vcf.idx"),
 	conda:
 		"../envs/gatk4.yaml"
 	resources:
@@ -89,16 +109,17 @@ rule Genotype_gvcf:
 			list_db=$list_db" gendb://"$file" "
 		done
 		echo $list_db
-		gatk GenotypeGVCFs --reference {input.ref} -V gendb://{input.dir} -O {output} {params.extra}
+		gatk GenotypeGVCFs --reference {input.ref} -V gendb://{input.dir} -O {output.vcf} {params.extra}
 		"""
 #gatk GenotypeGVCFs --reference {input.ref} -O {output} -V $list_db
 #gatk GenotypeGVCFs --reference {input.ref} -V gendb://{input.dir} -O {output}
 
 rule gatherVCF:
 	input:
-		expand("results/03_snv_indels_calling/variants.{regions}.vcf",regions=LIST_REGION_HAPLOTYPECALLER),
+		vcf=expand("results/03_snv_indels_calling/variants.{regions}.vcf",regions=LIST_REGION_HAPLOTYPECALLER),
+		idx=expand("results/03_snv_indels_calling/variants.{regions}.vcf.idx",regions=LIST_REGION_HAPLOTYPECALLER)
 	output:
-		"results/03_snv_indels_calling/variants.merged.vcf"
+		temp("results/03_snv_indels_calling/variants.merged.vcf")
 	conda:
 		"../envs/picard.yaml"
 	resources:
@@ -109,7 +130,7 @@ rule gatherVCF:
 	shell:
 		"""
 		list=""
-		for file in {input}
+		for file in {input.vcf}
 		do
 			list=$list" I="$file
 		done

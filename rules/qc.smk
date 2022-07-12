@@ -6,9 +6,6 @@ rule multiqc:
 	threads: get_thread
 	resources:
 		mem_mb=config["ram"]
-#	log:
-#		err=WORKDIR+"/essai_1320.err",
-#		out=WORKDIR+"/essai_1320.out"
 	params:
 		extra=config["params_multiqc"]
 	conda:
@@ -19,8 +16,6 @@ rule multiqc:
 		directory_res=`dirname {output}`
 		multiqc --force -n {output} {input}
 		"""
-#	wrapper:
-#		"v1.7.0/bio/multiqc"
 
 rule fqc_essai2:
 	input:
@@ -50,7 +45,7 @@ rule trimming:
 		r2="results/01_sequence_qc/trimmed.{sample}.R2.fq.gz",
 		r1_unpaired="results/01_sequence_qc/trimmed.{sample}.R1.unpaired.fq.gz",
 		r2_unpaired="results/01_sequence_qc/trimmed.{sample}.R2.unpaired.fq.gz",
-		log="results/01_sequence_qc/{sample}.trimmomatic.log"
+		log="results/01_sequence_qc/log/{sample}.trimmomatic.log"
 	params:
 		trimmer=["TRAILING:3"],
 		extra=config["params_trimmomatic"],
@@ -60,9 +55,6 @@ rule trimming:
 		mem_mb=config["ram"]
 	conda:
 		"../envs/qc.yaml"
-#	log:
-#		error="results/01_sequence_qc/log/{sample}.trimmomatic.error",
-#		output="results/01_sequence_qc/log/{sample}.trimmomatic.output"
 	shell:
 		"""
 		trimmomatic PE -threads {threads} {params.extra} {input.r1} {input.r2} {output.r1} {output.r1_unpaired} {output.r2} {output.r2_unpaired} {params.trimmer} 2> {output.log}

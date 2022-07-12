@@ -1,6 +1,6 @@
 rule flagstat:
 	input:
-		"results/02_mapping/bam/{sample}.mark_duplicates.bam"
+		"results/02_mapping/{sample}.mark_duplicates.bam"
 	output:
 		"results/02_mapping/flagstat/{sample}.flagstat"
 	conda:

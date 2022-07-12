@@ -43,6 +43,8 @@ QC_LIST=["depth","coverage","flagstat"]
 LIST_REGION_HAPLOTYPECALLER=[]
 def read_reference(reference):
 	LIST_CHR_REFERENCE=[]
+	dict={}
+	i=0
 	# try to get the chromosome from fasta
 	with open(reference,"r") as file:
 	#with open(config["reference"],"r") as file:
@@ -52,41 +54,60 @@ def read_reference(reference):
 				split_line=line.split(" ")
 				result=re.sub(">","",split_line[0])
 				#print(result)
-				LIST_CHR_REFERENCE.append(re.sub(r"[\n\t\s]*", "", result))
-	return LIST_CHR_REFERENCE
+				LIST_CHR_REFERENCE.append(i)
+				dict[str(i)]=re.sub(r"[\n\t\s]*", "", result)
+				i=i+1
+				#LIST_CHR_REFERENCE.append(re.sub(r"[\n\t\s]*", "", result))
+	return LIST_CHR_REFERENCE,dict
 
 
 #regions: "/shared/projects/camelina_pacbio_pipe/msgenova/regions.bed"
+
+#Define bool_region for booleen value if there is a region file present
+bool_region = False
+
+#We are creating a dictionary containing number as keys and chromosome or pathway to region file as value
+dict_chr={}
+
 # essai fct for optional config
 #def get_config_key(cfg,key,default_list=None):
-def get_config_key(cfg,key):
+def get_config_key(cfg,key,bool_var,dict):
 	try:
 		value=cfg[key]
 		print("regions file exist")
+		bool_var= True
 		#Define Regions for analysis
-		REGIONS = pd.read_table(config["regions"],dtype=str,delimiter="\t",header=None,names=["chromosome","beg","end"]).set_index(["chromosome","beg"], drop=False)
+		#REGIONS = pd.read_table(config["regions"],dtype=str,delimiter="\t",header=None,names=["chromosome","beg","end"]).set_index(["chromosome","beg"], drop=False)
 		LIST_CHR=[]
-		for elm in REGIONS.itertuples():
-			LIST_CHR.append(elm.chromosome+":"+elm.beg+"-"+elm.end)
-		return LIST_CHR
+		dict={}
+		dict[str(0)]=config["regions"]
+		LIST_CHR.append(0)
+		#for elm in REGIONS.itertuples():
+		#	LIST_CHR.append(elm.chromosome+":"+elm.beg+"-"+elm.end)
+		return LIST_CHR,dict
 		#return value
 	except:
 		print("no regions file - Read reference")
+		bool_var= False
 		default_list=read_reference(config["reference"])
 		return default_list
 
-#print("get output function get_config_key")
-#print(get_config_key(config,"regions",default_list=LIST_CHR_REFERENCE))
-LIST_REGION_HAPLOTYPECALLER=get_config_key(config,"regions")
+LIST_REGION_HAPLOTYPECALLER,dict_chr=get_config_key(config,"regions",bool_region,dict_chr)
 print("List regions haplotypecaller")
-print(LIST_REGION_HAPLOTYPECALLER)
+print(LIST_REGION_HAPLOTYPECALLER,dict_chr.values(),dict_chr.keys())
 
+#essai dictionnaire
+x=dict_chr.get(0)
+print(x)
+x=dict_chr.get(1)
+print(x)
 #Transform project name
 NAME_PROJECT=transform_project_name(config["project_name"])
 
 rule all:
 	input:
 		#"results/01_sequence_qc/"+NAME_PROJECT+"_multiqc_trim.html",
+		##expand("results/02_mapping/bam/{s.sample}.bam",s=SAMPLE.itertuples()),
 		#expand("results/01_sequence_qc/{s.sample}.trimmomatic.log",s=SAMPLE.itertuples()),
 		#expand("results/02_mapping/{qc}/{s.sample}.{qc}", qc=QC_LIST,s=SAMPLE.itertuples()),
 		#"results/03_snv_indels_calling/variants.merged.vcf",

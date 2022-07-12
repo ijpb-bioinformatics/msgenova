@@ -28,7 +28,7 @@ rule sort_sam:
 	input:
 		"results/02_mapping/{sample}.sam"
 	output:
-		"results/02_mapping/{sample}.sort.bam"
+		temp("results/02_mapping/{sample}.sort.bam")
 	params:
 		sort_order="coordinate",
 		extra=config["params_sort_sam"]
@@ -49,7 +49,7 @@ rule mark_duplicate:
 	input:
 		"results/02_mapping/{sample}.sort.bam"
 	output:
-		sam="results/02_mapping/{sample}.mark_duplicates.bam",
+		sam=temp("results/02_mapping/{sample}.mark_duplicates.bam"),
 		metrics="results/02_mapping/{sample}.mark_duplicates.metrics"
 	threads: get_thread
 	resources:

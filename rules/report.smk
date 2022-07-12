@@ -4,7 +4,7 @@ rule report:
 	"""
 	input:
 		multiqc="results/01_sequence_qc/"+NAME_PROJECT+"_multiqc_trim.html",
-		file_depth=expand("results/02_mapping/depth/{s.sample}.depth",s=SAMPLE.itertuples()),
+		#file_depth=expand("results/02_mapping/depth/{s.sample}.depth",s=SAMPLE.itertuples()),
 		#flag="results/03_mapping/flagstat/Extract_data.flagstat",
 		flag=expand("results/02_mapping/flagstat/{s.sample}.flagstat",s=SAMPLE.itertuples()),
 		sample_file=config["sample"],
@@ -18,7 +18,7 @@ rule report:
 		workdir=config["repo_script"],
 		DP=4,
 		AR=0.2,
-		region=LIST_REGION_HAPLOTYPECALLER
+		region=dict_chr.values()
 	conda:
 		"../envs/R.yaml"
 	threads: get_thread

@@ -7,64 +7,59 @@
     },
     "multiqc":
     {
-        "output" : "results/01_sequence_qc/log/{rule}.out",
-        "error" : "results/01_sequence_qc/log/{rule}.err"
+        "output" : "results/00_logs/{rule}.out",
+        "error" : "results/00_logs/{rule}.err"
     },
 
     "trimming":
     {
-        "output" : "results/01_sequence_qc/log/{rule}.{wildcards.sample}.out",
-        "error" : "results/01_sequence_qc/log/{rule}.{wildcards.sample}.err"
+        "output" : "results/00_logs/{rule}.{wildcards.sample}.out",
+        "error" : "results/00_logs/{rule}.{wildcards.sample}.err"
     },
     "trimmed_fqc2":
     {
-        "output" : "results/01_sequence_qc/log/{rule}.{wildcards.sample}.out",
-        "error" : "results/01_sequence_qc/log/{rule}.{wildcards.sample}.err"
+        "output" : "results/00_logs/{rule}.{wildcards.sample}.out",
+        "error" : "results/00_logs/{rule}.{wildcards.sample}.err"
     },
     "trimmed_fqc1":
     {
-        "output" : "results/01_sequence_qc/log/{rule}.{wildcards.sample}.out",
-        "error" : "results/01_sequence_qc/log/{rule}.{wildcards.sample}.err"
+        "output" : "results/00_logs/{rule}.{wildcards.sample}.out",
+        "error" : "results/00_logs/{rule}.{wildcards.sample}.err"
     },
     "align":
     {
-        "output" : "results/02_mapping/log/{rule}.{wildcards.sample}.out",
-        "error" : "results/02_mapping/log/{rule}.{wildcards.sample}.err"
+        "error" : "results/02_mapping/log/{rule}.{wildcards.sample}.log",
+        "output" : "results/00_logs/{rule}.{wildcards.sample}.out"
     },
     "sort_sam":
     {
-        "output" : "results/02_mapping/log/{rule}.{wildcards.sample}.out",
-        "error" : "results/02_mapping/log/{rule}.{wildcards.sample}.err"
+        "output" : "results/00_logs/{rule}.{wildcards.sample}.out",
+        "error" : "results/00_logs/{rule}.{wildcards.sample}.err"
     },
     "mark_duplicate":
     {
-        "output" : "results/02_mapping/log/{rule}.{wildcards.sample}.out",
-        "error" : "results/02_mapping/log/{rule}.{wildcards.sample}.err"
+        "output" : "results/00_logs/{rule}.{wildcards.sample}.out",
+        "error" : "results/00_logs/{rule}.{wildcards.sample}.err"
     },
     "keep_mapped_only":
     {
-        "output" : "results/02_mapping/log/{rule}.{wildcards.sample}.out",
-        "error" : "results/02_mapping/log/{rule}.{wildcards.sample}.err"
+        "output" : "results/00_logs/{rule}.{wildcards.sample}.out",
+        "error" : "results/00_logs/{rule}.{wildcards.sample}.err"
     },
     "flagstat":
     {
-        "output" : "results/02_mapping/log/{rule}.{wildcards.sample}.out",
-        "error" : "results/02_mapping/log/{rule}.{wildcards.sample}.err"
+        "output" : "results/00_logs/{rule}.{wildcards.sample}.out",
+        "error" : "results/00_logs/{rule}.{wildcards.sample}.err"
     },
     "samtools_coverage":
     {
-        "output" : "results/02_mapping/log/{rule}.{wildcards.sample}.out",
-        "error" : "results/02_mapping/log/{rule}.{wildcards.sample}.err"
+        "output" : "results/00_logs/{rule}.{wildcards.sample}.out",
+        "error" : "results/00_logs/{rule}.{wildcards.sample}.err"
     },
     "samtools_depth":
     {
-        "error" : "results/02_mapping/log/{rule}.{wildcards.sample}.err",
-        "output" : "results/02_mapping/log/{rule}.{wildcards.sample}.out"
-    },
-    "get_genomic_region":
-    {
-        "output" : "results/00_logs/{rule}.out",
-        "error" : "results/00_logs/{rule}.err"
+        "error" : "results/00_logs/{rule}.{wildcards.sample}.err",
+        "output" : "results/00_logs/{rule}.{wildcards.sample}.out"
     },
     "samtools_index_reference":
     {
@@ -78,23 +73,23 @@
     },
     "HaplotyCaller":
     {
-        "output" : "results/03_snv_indels_calling/log/{rule}.{wildcards.sample}.{wildcards.regions}.out",
-        "error" : "results/03_snv_indels_calling/log/{rule}.{wildcards.sample}.{wildcards.regions}.err"
+        "output" : "results/00_logs/{rule}.{wildcards.sample}.{wildcards.regions}.out",
+        "error" : "results/00_logs/{rule}.{wildcards.sample}.{wildcards.regions}.err"
     },
     "GenomicsDB":
     {
-        "output" : "results/03_snv_indels_calling/log/{rule}.{wildcards.regions}.out",
-        "error" : "results/03_snv_indels_calling/log/{rule}.{wildcards.regions}.err"
+        "output" : "results/00_logs/{rule}.{wildcards.regions}.out",
+        "error" : "results/00_logs/{rule}.{wildcards.regions}.err"
     },
     "Genotype_gvcf":
     {
-        "output" : "results/03_snv_indels_calling/log/{rule}.{wildcards.regions}.out",
-        "error" : "results/03_snv_indels_calling/log/{rule}.{wildcards.regions}.err"
+        "output" : "results/00_logs/{rule}.{wildcards.regions}.out",
+        "error" : "results/00_logs/{rule}.{wildcards.regions}.err"
     },
     "gatherVCF":
     {
-        "output" : "results/03_snv_indels_calling/log/{rule}.out",
-        "error" : "results/03_snv_indels_calling/log/{rule}.err"
+        "output" : "results/00_logs/{rule}.out",
+        "error" : "results/00_logs/{rule}.err"
     },
     "build_snpeff_db":
     {
@@ -103,8 +98,8 @@
     },
     "annotate_variant":
     {
-        "output" : "results/03_snv_indels_calling/log/{rule}.out",
-        "error" : "results/03_snv_indels_calling/log/{rule}.err"
+        "output" : "results/00_logs/{rule}.out",
+        "error" : "results/00_logs/{rule}.err"
     },
     "bwa_index_reference":
     {
@@ -114,7 +109,7 @@
 
     "report":
     {
-        "results/06_report/log/{rule}.out",
-        "results/06_report/log/{rule}.out"
+        "results/00_logs/{rule}.out",
+        "results/00_logs/{rule}.out"
     }
 }
