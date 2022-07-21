@@ -1,12 +1,40 @@
+rule deal_with_vector:
+	"""
+	Concatenate reference with vector if it is present in the config, else, just symlink to reference
+	"""
+	input:
+		ref=config["reference"]
+	output:
+		ref="results/genome/"+REFERENCE+".fasta"
+	params:
+		vector=get_vector(config,"vector")[0],
+		field=get_vector(config,"vector")[1]
+	threads: get_thread
+	resources:
+		mem_mb=config["ram"]
+	shell:
+		"""
+		if {params.vector}==TRUE
+		do
+			cat {input.ref} {params.field} > {output.ref}
+		done
+		else
+		do
+			ln -s {input.ref} {output.ref}
+		done
+		"""
+
 rule bwa_index_reference:
 	"""
 	Index reference for bwa
 	"""
 	input:
-		ref=config["reference"]
+		ref="results/genome/"+REFERENCE+".fasta"
+		#ref=get_reference
+		#ref=config["reference"]
 	output:
-		index=expand("results/genome/"+REF_NAME+".fasta.{suffix}",suffix=SUFFIX_BWA),
-		ref="results/genome/"+REF_NAME+".fasta"
+		index=expand("results/genome/"+REFERENCE+".fasta.{suffix}",suffix=SUFFIX_BWA),
+		#ref="results/genome/"+REFERENCE+".fasta"
 	conda:
 		"../envs/align.yaml"
 	resources:
@@ -16,8 +44,8 @@ rule bwa_index_reference:
 		extra=config["params_bwa_index_reference"]
 	shell:
 		"""
-		ln -s {input.ref} {output.ref}
-		bwa index {params.extra} {output.ref}
+		#ln -s {input.ref} {output.ref}
+		bwa index {params.extra} {input.ref}
 		"""
 
 rule create_dict_reference:

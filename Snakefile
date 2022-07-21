@@ -36,6 +36,11 @@ for dir in LIST_of_DIR:
 # Define reference name 
 REF_NAME=Path(config["reference"]).stem
 
+#Define reference variable (in case of concatenation of reference with vector)
+REFERENCE=define_reference(config,"vector")
+
+print(REFERENCE)
+
 #Define bwa suffix 
 SUFFIX_BWA=["amb","ann","bwt","pac","sa"]
 QC_LIST=["depth","coverage","flagstat"]
@@ -114,7 +119,8 @@ rule all:
 		#"results/03_snv_indels_calling/"+NAME_PROJECT+".html"
 		#"results/03_snv_indels_calling/"+NAME_PROJECT+"snpeff.html",
 		#"results/03_snv_indels_calling/"+NAME_PROJECT+"_snv_indel.vcf"
-		"results/06_report/msgenova_report.html"
+		#"results/06_report/msgenova_report.html"
+		"results/genome/"+REFERENCE+".fasta"
 
 include: "rules/qc.smk"
 include: "rules/index.smk"

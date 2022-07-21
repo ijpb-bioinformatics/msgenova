@@ -4,7 +4,7 @@ rule report:
 	"""
 	input:
 		multiqc="results/01_sequence_qc/"+NAME_PROJECT+"_multiqc_trim.html",
-		#file_depth=expand("results/02_mapping/depth/{s.sample}.depth",s=SAMPLE.itertuples()),
+		file_depth=expand("results/02_mapping/depth/{s.sample}.depth",s=SAMPLE.itertuples()),
 		#flag="results/03_mapping/flagstat/Extract_data.flagstat",
 		flag=expand("results/02_mapping/flagstat/{s.sample}.flagstat",s=SAMPLE.itertuples()),
 		sample_file=config["sample"],
@@ -25,5 +25,5 @@ rule report:
 	resources:
 		mem_mb=config["ram"]
 	shell:
-		"Rscript -e \"rmarkdown::render('{params.workdir}/script/ms_report.Rmd', output_file = '{params.workdir}/{output}', params = list(result_dir='{params.workdir}/results/', sample='{input.sample_file}',region='{params.region}', DP.min='{params.DP}', AR.min='{params.AR}', multiqc='{params.workdir}/{input.multiqc}'))\""
+		"Rscript -e \"rmarkdown::render('{params.workdir}/script/ms_report.Rmd', output_file = '{params.workdir}/{output}', params = list(result_dir='{params.workdir}/results/', sample='{input.sample_file}', DP.min='{params.DP}', AR.min='{params.AR}', multiqc='{params.workdir}/{input.multiqc}'))\""
 
