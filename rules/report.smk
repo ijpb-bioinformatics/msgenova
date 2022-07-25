@@ -1,3 +1,19 @@
+rule copy_config:
+	"""
+	Copy config advanced in 00_logs
+	"""
+	output:
+		"results/00_logs/config_advanced"
+	params:
+		config=config["repo_script"]
+	threads: get_thread
+	resources:
+		mem_mb=get_mem
+	shell:
+		"""
+		cp {params.config}/config_advanced {output}
+		"""
+
 rule report:
 	"""
 	Create final report comporting all analysis results
@@ -12,6 +28,7 @@ rule report:
 		reference=config["reference"],
 		haplotype_caller_html="results/03_snv_indels_calling/"+NAME_PROJECT+"snpeff.html",
 		haplotype_caller_vcf="results/03_snv_indels_calling/"+NAME_PROJECT+"_snv_indel.vcf",
+		config="results/00_logs/config_advanced"
 	output:
 		"results/06_report/msgenova_report.html"
 	params:
@@ -23,7 +40,7 @@ rule report:
 		"../envs/R.yaml"
 	threads: get_thread
 	resources:
-		mem_mb=config["ram"]
+		mem_mb=get_mem
 	shell:
 		"Rscript -e \"rmarkdown::render('{params.workdir}/script/ms_report.Rmd', output_file = '{params.workdir}/{output}', params = list(result_dir='{params.workdir}/results/', sample='{input.sample_file}', DP.min='{params.DP}', AR.min='{params.AR}', multiqc='{params.workdir}/{input.multiqc}'))\""
 

@@ -5,7 +5,7 @@ rule multiqc:
 		"results/01_sequence_qc/"+NAME_PROJECT+"_multiqc_trim.html"
 	threads: get_thread
 	resources:
-		mem_mb=config["ram"]
+		mem_mb=get_mem
 	params:
 		extra=config["params_multiqc"]
 	conda:
@@ -29,7 +29,7 @@ rule fqc_essai2:
 	log:
 		"log/essai_log_file.log"
 	resources:
-		mem_mb=config["ram"]
+		mem_mb=get_mem
 	shell:
 		"""
 		echo "$(date '+%Y%m%d %r') [$(basename $0): QC & Trimming] Starting Sequence Quality Control and Trimming Process..." | tee -a {log} 2>&1
@@ -52,7 +52,7 @@ rule trimming:
 		compression_level="-9"
 	threads: get_thread
 	resources:
-		mem_mb=config["ram"]
+		mem_mb=get_mem
 	conda:
 		"../envs/qc.yaml"
 	shell:
@@ -69,7 +69,7 @@ rule trimmed_fqc2:
 		zip="results/01_sequence_qc/trimmed.{sample}.R2_fastqc.zip"
 	threads: get_thread
 	resources:
-		mem_mb=config["ram"]
+		mem_mb=get_mem
 	conda:
 		"../envs/qc.yaml"
 	params:
@@ -86,8 +86,7 @@ rule trimmed_fqc1:
 		html="results/01_sequence_qc/trimmed.{sample}.R1_fastqc.html",
 		zip="results/01_sequence_qc/trimmed.{sample}.R1_fastqc.zip"
 	threads: get_thread
-	resources:
-		mem_mb=config["ram"]
+	resources: mem_mb=get_mem
 	conda:
 		"../envs/qc.yaml"
 	params:

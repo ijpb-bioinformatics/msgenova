@@ -20,12 +20,13 @@ rule HaplotyCaller:
 	"""
 	input:
 		bam="results/02_mapping/bam/{sample}.bam",
-		ref="results/genome/"+REF_NAME+".fasta",
-		index="results/genome/"+REF_NAME+".fasta.fai",
-		dict="results/genome/"+REF_NAME+".dict",
+		ref="results/genome/"+REFERENCE+".fasta",
+		index="results/genome/"+REFERENCE+".fasta.fai",
+		dict="results/genome/"+REFERENCE+".dict",
 		bai="results/02_mapping/bam/{sample}.bam.bai"
 	output:
-		vcf=temp("results/03_snv_indels_calling/{sample}.{regions}.g.vcf")
+		vcf=temp("results/03_snv_indels_calling/{sample}.{regions}.g.vcf"),
+		idx=temp("results/03_snv_indels_calling/{sample}.{regions}.g.vcf.idx")
 	conda:
 		"../envs/gatk4.yaml"
 	threads: get_thread
@@ -35,7 +36,7 @@ rule HaplotyCaller:
 		#region=dict_chr.get(wildcards.regions)
 		regions=get_region
 	resources:
-		mem_mb=config["ram"]
+		mem_mb=get_mem
 	shell:
 		"""
 		 gatk --java-options -Xmx{resources.mem_mb} HaplotypeCaller -R {input.ref} -I {input.bam} -O {output.vcf} -L {params.regions} --native-pair-hmm-threads {threads} {params.extra}
@@ -46,7 +47,8 @@ rule GenomicsDB:
 	Here GenomicsDB replace CombineGVCFs because it was taking too much time to run. GenomicsDB create a database and  store all variations present in gvcf file. Later sample will be genotyped
 	"""
 	input:
-		expand("results/03_snv_indels_calling/{s.sample}.{{regions}}.g.vcf",s=SAMPLE.itertuples()),
+		vcf=expand("results/03_snv_indels_calling/{s.sample}.{{regions}}.g.vcf",s=SAMPLE.itertuples()),
+		idx=expand("results/03_snv_indels_calling/{s.sample}.{{regions}}.g.vcf.idx",s=SAMPLE.itertuples()),
 	output:
 		dir=temp(directory("results/03_snv_indels_calling/genomicDB_{regions}")),
 		json="results/03_snv_indels_calling/genomicDB_{regions}/callset.json",
@@ -59,8 +61,7 @@ rule GenomicsDB:
 	conda:
 		"../envs/gatk4.yaml"
 	threads: get_thread
-	resources:
-		mem_mb=config["ram"]
+	resources: mem_mb=get_mem
 	shell:
 		"""
 		if [ -d {output.dir} ]
@@ -68,26 +69,19 @@ rule GenomicsDB:
 			rm -R {output.dir}
 		fi
 		variant=""
-		for file in {input}
+		for file in {input.vcf}
 		do
 			variant=$variant" -V "$file
 		done
 		gatk --java-options -Xmx{resources.mem_mb} GenomicsDBImport $variant --genomicsdb-workspace-path {output.dir} --intervals {params.region} {params.extra}
 		"""
 
-#def get_input_genotype_gvcf(wildcards):
-#	if bool_region == True:
-#		return expand("results/03_snv_indels_calling/genomicDB_regions/{file}",file=["callset.json","vcfheader.vcf","vidmap.json"])
-#	else:
-#		return expand("results/03_snv_indels_calling/genomicDB_{regions}/{file}",file=["callset.json","vcfheader.vcf","vidmap.json"],regions=LIST_REGION_HAPLOTYPECALLER),
-#
-
 rule Genotype_gvcf:
 	"""
 	Genotype samples using gatk GenotypeGVCFs
 	"""
 	input:
-		ref="results/genome/"+REF_NAME+".fasta",
+		ref="results/genome/"+REFERENCE+".fasta",
 		dir="results/03_snv_indels_calling/genomicDB_{regions}/",
 		#db=expand("results/03_snv_indels_calling/genomicDB/{file}",file=["callset.json","vcfheader.vcf","vidmap.json"]),
 		db=expand("results/03_snv_indels_calling/genomicDB_{regions}/{file}",file=["callset.json","vcfheader.vcf","vidmap.json"],regions=LIST_REGION_HAPLOTYPECALLER),
@@ -96,8 +90,7 @@ rule Genotype_gvcf:
 		idx=temp("results/03_snv_indels_calling/variants.{regions}.vcf.idx"),
 	conda:
 		"../envs/gatk4.yaml"
-	resources:
-		mem_mb=config["ram"]
+	resources: mem_mb=get_mem
 	threads: get_thread
 	params:
 		extra=config["params_genotype_gvcf"]
@@ -117,13 +110,12 @@ rule Genotype_gvcf:
 rule gatherVCF:
 	input:
 		vcf=expand("results/03_snv_indels_calling/variants.{regions}.vcf",regions=LIST_REGION_HAPLOTYPECALLER),
-		idx=expand("results/03_snv_indels_calling/variants.{regions}.vcf.idx",regions=LIST_REGION_HAPLOTYPECALLER)
+		idx=expand("results/03_snv_indels_calling/variants.{regions}.vcf.idx",regions=LIST_REGION_HAPLOTYPECALLER),
 	output:
 		temp("results/03_snv_indels_calling/variants.merged.vcf")
 	conda:
 		"../envs/picard.yaml"
-	resources:
-		mem_mb=config["ram"]
+	resources: mem_mb=get_mem
 	threads: get_thread
 	params:
 		extra=config["params_gathervcf"]

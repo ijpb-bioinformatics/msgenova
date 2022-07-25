@@ -5,17 +5,17 @@ rule align:
 	input:
 		fq1="results/01_sequence_qc/trimmed.{sample}.R1.fq.gz",
 		fq2="results/01_sequence_qc/trimmed.{sample}.R2.fq.gz",
-		index=expand("results/genome/"+REF_NAME+".fasta.{suffix}",suffix=SUFFIX_BWA),
-		reference="results/genome/"+REF_NAME+".fasta"
+		index=expand("results/genome/"+REFERENCE+".fasta.{suffix}",suffix=SUFFIX_BWA),
+		reference="results/genome/"+REFERENCE+".fasta"
 	output:
-		sam="results/02_mapping/{sample}.sam"
+		sam=temp("results/02_mapping/{sample}.sam")
 	params:
 		extra=config["params_bwa"]
 	conda:
 		"../envs/align.yaml"
 	threads: get_thread
 	resources:
-		mem_mb=config["ram"]
+		mem_mb=get_mem
 	shell:
 		"""
 		bwa mem -R \"@RG\\tID:{wildcards.sample}\\tSM:{wildcards.sample}\\tLB:Illumina\\tPL:Illumina\\tPU:{wildcards.sample}\" -M -t {threads} {params.extra} {input.reference} {input.fq1} {input.fq2} > {output.sam} 
@@ -28,18 +28,19 @@ rule sort_sam:
 	input:
 		"results/02_mapping/{sample}.sam"
 	output:
-		temp("results/02_mapping/{sample}.sort.bam")
+		bam=temp("results/02_mapping/{sample}.sort.bam"),
+		bai=temp("results/02_mapping/{sample}.sort.bai")
 	params:
 		sort_order="coordinate",
 		extra=config["params_sort_sam"]
 	threads: get_thread
 	resources:
-		mem_mb=config["ram"]
+		mem_mb=get_mem
 	conda:
 		"../envs/picard.yaml"
 	shell:
 		"""
-		picard SortSam  -Xmx{resources.mem_mb} --INPUT {input} --OUTPUT {output} --SORT_ORDER {params.sort_order} {params.extra}
+		picard SortSam  -Xmx{resources.mem_mb} --INPUT {input} --OUTPUT {output.bam} --SORT_ORDER {params.sort_order} {params.extra}
 		"""
 
 rule mark_duplicate:
@@ -53,7 +54,7 @@ rule mark_duplicate:
 		metrics="results/02_mapping/{sample}.mark_duplicates.metrics"
 	threads: get_thread
 	resources:
-		mem_mb=config["ram"]
+		mem_mb=get_mem
 	conda:
 		"../envs/picard.yaml"
 	params:
@@ -86,20 +87,28 @@ rule mark_duplicate:
 
 rule keep_mapped_only:
 	"""
-	Keep mapped reads only in alignment
+	Keep mapped reads only in alignment and intersect if a region file is present
 	"""
 	input:
 		"results/02_mapping/{sample}.mark_duplicates.bam"
 	output:
 		"results/02_mapping/bam/{sample}.bam"
 	resources:
-		mem_mb=config["ram"]
+		mem_mb=get_mem
 	conda:
 		"../envs/picard.yaml"
 	threads: get_thread
 	params:
-		extra=config["params_extra_mapped_reads"]
+		extra=config["params_extra_mapped_reads"],
+		bool=get_vector(config,"regions")[0],
+		region=get_vector(config,"regions")[1]
 	shell:
 		"""
-		samtools view --threads {threads} {params.extra} -F4 -h -S -b {input} > {output}
+		
+		if [ {params.bool} == "TRUE" ]
+		then
+			samtools view --threads {threads} {params.extra} -F4 -h -S -b {input} | bedtools intersect -a - -b {params.region} > {output}
+		else
+			samtools view --threads {threads} {params.extra} -F4 -h -S -b {input} > {output}
+		fi
 		"""

@@ -1,12 +1,12 @@
 #!/bin/bash
-module load bioinfo/snakemake-7.8.1
+module load snakemake/7.7.0
 path=$2 # result dir
 config=$1 # config file
 pipeline_path=$(dirname $0) # path of pipeline source
 
-path="/work/gadam/msgenova/"
-config="/work/gadam/msgenova"
-pipeline_path="/work/gadam/msgenova"
+path="/shared/projects/camelina_pacbio_pipe/msgenove_21"
+config="/shared/projects/camelina_pacbio_pipe/msgenove_21"
+pipeline_path="/shared/projects/camelina_pacbio_pipe/msgenove_21"
 
 #sbatch snakemake -p --snakefile ${pipeline_path}/Snakefile --config repo_script=${pipeline_path} --configfile $path/config_user --cluster-config ${pipeline_path}/cluster_config.json --cluster "sbatch --output {cluster.output} --error {cluster.error} --cpus-per-task {threads} --job-name {rule} --mem {resources.mem_mb} " --jobs 200 --latency-wait 90 --use-envmodules --use-conda --stats stat.json  --directory $path --conda-prefix $path >& snakemake.log
 
@@ -45,11 +45,5 @@ shift $((OPTIND-1))
 if [ -z "${o}" ] || [ -z "${c}" ] ; then
 	usage
 else
-	sbatch snakemake -p --snakefile ${pipeline_path}/Snakefile --config repo_script=${pipeline_path} --configfile $path$c --cluster-config ${pipeline_path}/cluster_config.json --cluster "sbatch --output {cluster.output} --error {cluster.error} --cpus-per-task {threads} --job-name {rule} --mem {resources.mem_mb} " --jobs 200 --latency-wait 90 --use-envmodules --use-conda --stats stat.json  --directory $o --conda-prefix $o >& snakemake.log
-	echo $o
-	echo $c
-	echo $path$c
-	echo ${pipeline_path}
+	sbatch snakemake -p --snakefile ${pipeline_path}/Snakefile --config repo_script=${pipeline_path} --configfile $path/$c --cluster-config ${pipeline_path}/cluster_config.json --cluster "sbatch --output {cluster.output} --error {cluster.error} --cpus-per-task {threads} --job-name {rule} --mem {resources.mem_mb} " --jobs 200 --latency-wait 90 --use-envmodules --use-conda --stats stat.json  --directory $o --conda-prefix $o --conda-frontend mamba >& snakemake.log
 fi
-echo "c= ${c}"
-echo "o= ${o}"

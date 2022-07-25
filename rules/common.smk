@@ -13,8 +13,26 @@ def create_logsdir(path):
 	else:
 		logger.info("Successfully created the directory %s " % path)
 
+#define function to get threads from config file or set defaults value
 def get_thread(wildcards):
-	return int(config["cpu"])
+	try:
+		value=config["cpu"]
+		return int(config["cpu"])
+	except:
+		return int("16")	
+#return int(config["cpu"])
+
+def get_mem(wildcards):
+	if get_vector(config,"ram")[0] == "TRUE":
+		return str(get_vector(config,"ram")[1])
+	else:
+		return "30G"
+#	try:
+#		value=config["ram"]
+#		return config["ram"]
+#	except:
+#		return "30G"
+#
 
 def transform_project_name(name):
 	new_name=re.sub(r"[.,;\n\t\s]*","",name)
@@ -58,3 +76,25 @@ def get_vector(cfg,key):
 	except:
 		bool="FALSE"
 		return (bool,None)
+
+
+def read_reference(reference):
+	LIST_CHR_REFERENCE=[]
+	dict={}
+	i=0
+	# try to get the chromosome from fasta
+	with open(reference,"r") as file:
+	#with open(config["reference"],"r") as file:
+		for line in file:
+			if re.search(">",line):
+				#if ">" is present then cut by space, and get first sequence
+				split_line=line.split(" ")
+				result=re.sub(">","",split_line[0])
+				LIST_CHR_REFERENCE.append(i)
+				dict[str(i)]=re.sub(r"[\n\t\s]*", "", result)
+				i=i+1
+	return LIST_CHR_REFERENCE,dict
+
+
+def get_regions(wildcards):
+	return wilcards.chr+":"+wilcards.beg+"-"+wilcards.end

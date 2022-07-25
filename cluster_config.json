@@ -46,12 +46,27 @@
         "output" : "results/00_logs/{rule}.{wildcards.sample}.out",
         "error" : "results/00_logs/{rule}.{wildcards.sample}.err"
     },
+    "index_alignment_file":
+    {
+        "output" : "results/00_logs/{rule}.{wildcards.sample}.out",
+        "error" : "results/00_logs/{rule}.{wildcards.sample}.err"
+    },
     "flagstat":
     {
         "output" : "results/00_logs/{rule}.{wildcards.sample}.out",
         "error" : "results/00_logs/{rule}.{wildcards.sample}.err"
     },
     "samtools_coverage":
+    {
+        "output" : "results/00_logs/{rule}.{wildcards.sample}.out",
+        "error" : "results/00_logs/{rule}.{wildcards.sample}.err"
+    },
+    "samtools_coverage_by_regions":
+    {
+        "output" : "results/00_logs/{rule}.{wildcards.sample}.{wildcards.chr}.{wildcards.beg}.{wildcards.end}.out",
+        "error" : "results/00_logs/{rule}.{wildcards.sample}.{wildcards.chr}.{wildcards.beg}.{wildcards.end}.err"
+    },
+    "samtools_coverage_final":
     {
         "output" : "results/00_logs/{rule}.{wildcards.sample}.out",
         "error" : "results/00_logs/{rule}.{wildcards.sample}.err"
