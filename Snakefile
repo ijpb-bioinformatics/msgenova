@@ -66,13 +66,24 @@ print(LIST_REGION_HAPLOTYPECALLER,dict_chr.values(),dict_chr.keys())
 #Transform project name
 NAME_PROJECT=transform_project_name(config["project_name"])
 
+#define list of vector name if vector is present in the configuration file
+#if get_vector(config,"vector")[0] == "TRUE":
+#	LIST_VECTOR,dict_vector=read_reference(get_vector(config,"vector")[1])
+
+def get_all(wildcards):
+	if get_vector(config,"vector")[0] == "TRUE":
+		LIST_VECTOR,dict_vector=read_reference(get_vector(config,"vector")[1])
+		expand("results/05_tdnascan/{s.sample}/{vector}/5.{vector}_insertion.bed",s=SAMPLE.itertuples(),vector=LIST_VECTOR),
 rule all:
 	input:
 		#expand("results/02_mapping/depth/{s.sample}.depth",s=SAMPLE.itertuples()),
 		#expand("results/02_mapping/coverage/{s.sample}_{reg.chr}:{reg.beg}-{reg.end}.coverage",s=SAMPLE.itertuples(),reg=REGIONS.itertuples()),
 		#expand("results/02_mapping/coverage/{s.sample}.coverage",s=SAMPLE.itertuples()),
 		#"results/01_sequence_qc/"+NAME_PROJECT+"_multiqc_trim.html",
-		"results/06_report/msgenova_report.html"
+		#"results/06_report/msgenova_report.html"
+		#expand("results/05_tdnascan/{s.sample}/5.tdna_insertion.bed",s=SAMPLE.itertuples()),
+		#get_all
+		"aggregate.txt"
 
 include: "rules/qc.smk"
 include: "rules/index.smk"
@@ -81,3 +92,4 @@ include: "rules/qc_bam.smk"
 include: "rules/sv_calling.smk"
 include: "rules/annotate_variant.smk"
 include: "rules/report.smk"
+include: "rules/tdnascan.smk"

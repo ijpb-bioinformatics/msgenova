@@ -67,3 +67,9 @@ params_snpeff_build: ""
 
 #parameters for annotation by snpeff
 params_snpeff_ann: ""
+
+############# Parameters for tDNAScan #############
+#parameters for tDNAScan, tool used to check for plasmid insertion
+# b : length of the library fragment in data (default 500)
+# a windows size of soft clipped reads clustering (default 3)
+params_tdnascan: " -b 450 "
