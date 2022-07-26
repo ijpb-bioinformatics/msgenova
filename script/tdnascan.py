@@ -108,8 +108,8 @@ def align2genome(R1,R2,genome,outfile,thread,directory):
     #os.system(cmd1)
     os.system(cmd2)
     os.system(cmd3)
-    cmd6 = "rm "+outfile+".sam"
-    os.system(cmd6)
+    #cmd6 = "rm "+outfile+".sam"
+    #os.system(cmd6)
     os.system(cmd4)
     
 def fileSplit(tdnaSAM,tmp_dir,install_dir):
