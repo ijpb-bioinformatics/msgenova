@@ -26,11 +26,16 @@ include: "rules/common.smk"
 SAMPLE = pd.read_table(config["sample"], dtype=str,delimiter="\t").set_index(["sample"], drop=False)
 #SAMPLE.index = SAMPLE.index.set_levels([i.astype(str) for i in SAMPLE.index.levels])
 
+SUFFIX_BLAST=["ndb","nhr","nin","nog","nos","not","nsq","ntf","nto"]
+
 #create results and logs output directory
-LIST_of_DIR=["results/00_logs/","results/01_sequence_qc/log/","results/02_mapping/log/"]
+LIST_of_DIR=["results/00_logs/","results/01_sequence_qc/log/","results/02_mapping/log/","tmp"]
 for dir in LIST_of_DIR:
 	if not (os.path.isdir(dir)):
 		create_logsdir(dir)
+
+# define tmp dir
+TMPDIR=WORKDIR+"/tmp"
 
 # Define reference name
 REF_NAME=Path(config["reference"]).stem
@@ -78,12 +83,17 @@ rule all:
 	input:
 		#expand("results/02_mapping/depth/{s.sample}.depth",s=SAMPLE.itertuples()),
 		#expand("results/02_mapping/coverage/{s.sample}_{reg.chr}:{reg.beg}-{reg.end}.coverage",s=SAMPLE.itertuples(),reg=REGIONS.itertuples()),
-		#expand("results/02_mapping/coverage/{s.sample}.coverage",s=SAMPLE.itertuples()),
+		#expand("results/02_mapping/depth/{s.sample}.depth",s=SAMPLE.itertuples()),
 		#"results/01_sequence_qc/"+NAME_PROJECT+"_multiqc_trim.html",
 		#"results/06_report/msgenova_report.html"
 		#expand("results/05_tdnascan/{s.sample}/5.tdna_insertion.bed",s=SAMPLE.itertuples()),
 		#get_all
-		"aggregate.txt"
+		#"aggregate.txt",
+		#"aggregate_pindel.txt"
+		#"results/01_sequence_qc/log/trimmomatic.log",
+		#expand("results/02_blast/blast_filtered_{s.sample}_concat/all.blast",s=SAMPLE.itertuples()),
+		"results/06_report/msgenova_report.html"
+
 
 include: "rules/qc.smk"
 include: "rules/index.smk"
@@ -91,5 +101,8 @@ include: "rules/align.smk"
 include: "rules/qc_bam.smk"
 include: "rules/sv_calling.smk"
 include: "rules/annotate_variant.smk"
-include: "rules/report.smk"
 include: "rules/tdnascan.smk"
+include: "rules/pindel.smk"
+include: "rules/report.smk"
+#include: "rules/create_database.smk"
+#include: "rules/blast.smk"

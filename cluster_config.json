@@ -5,6 +5,11 @@
         "output" : "results/00_logs/{rule}.out",
         "error" : "results/00_logs/{rule}.err"
     },
+    "transfo_read_name":
+    {
+        "output" : "results/00_logs/{rule}.{wildcards.sample}.out",
+        "error": "results/00_logs/{rule}.{wildcards.sample}.err"
+    },
     "multiqc":
     {
         "output" : "results/00_logs/{rule}.out",
@@ -121,7 +126,21 @@
         "output" : "results/00_logs/{rule}.out",
         "error" : "results/00_logs/{rule}.err"
     },
-
+    "tdnascan":
+    {
+        "output" : "results/00_logs/{rule}.vector.{wildcards.vector}.sample.{wildcards.sample}.out",
+        "error" : "results/00_logs/{rule}.vector.{wildcards.vector}.sample.{wildcards.sample}.err"
+    },
+    "tdnascan_annotate":
+    {
+        "output" : "results/00_logs/{rule}.vector.{wildcards.vector}.sample.{wildcards.sample}.out",
+        "error" : "results/00_logs/{rule}.vector.{wildcards.vector}.sample.{wildcards.sample}.err"
+    },
+    "run_pindel":
+    {
+        "output" : "results/00_logs/{rule}.{wildcards.region_pindel}.out",
+        "error" : "results/00_logs/{rule}.{wildcards.region_pindel}.err"
+    },
     "report":
     {
         "results/00_logs/{rule}.out",

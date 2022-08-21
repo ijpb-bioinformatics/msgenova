@@ -92,7 +92,7 @@ rule index_alignment_file:
 	input:
 		bam="results/02_mapping/bam/{sample}.bam"
 	output:
-		bai=temp("results/02_mapping/bam/{sample}.bam.bai")
+		bai="results/02_mapping/bam/{sample}.bam.bai"
 	conda:
 		"../envs/picard.yaml"
 	threads: get_thread

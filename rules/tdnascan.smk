@@ -85,7 +85,10 @@ rule tdnascan:
 		index_ref=expand("results/genome/tdnascan/reference/"+REF_NAME+".fa.{suffix}",suffix=SUFFIX_BWA),
 		index_vector=expand("results/genome/tdnascan/vectors/{{vector}}.fa.{suffix}",suffix=SUFFIX_BWA),
 	output:
-		"results/05_tdnascan/{sample}/{vector}/5.{vector}_insertion.bed"
+		bed="results/05_tdnascan/{sample}/{vector}/5.{vector}_insertion.bed",
+		sam=temp("results/05_tdnascan/{sample}/{vector}/1.TDNA.sam"),
+		bam1=temp("results/05_tdnascan/{sample}/{vector}/1.TDNA_sort.bam"),
+		sam_insert=temp("results/05_tdnascan/{sample}/{vector}/5.insertion.sam")
 	params:
 		install_dir=config["repo_script"],
 		wk=WORKDIR,
@@ -107,22 +110,41 @@ rule tdnascan:
 		python2.7 {params.install_dir}/script/tdnascan.py -1 {params.wk}/{input.fq1} -2 {params.wk}/{input.fq2} -t {params.wk}/{input.vector} -g {params.wk}/{input.reference} -p {wildcards.vector} -@ {threads} -i {params.wk}/script -d {params.wk}/results/05_tdnascan/{wildcards.sample} {params.extra}
 		"""
 
+rule clean_and_delete_tdnascan:
+	input:
+		sam="results/05_tdnascan/{sample}/{vector}/1.TDNA.sam",
+		bam1="results/05_tdnascan/{sample}/{vector}/1.TDNA_sort.bam",
+		sam_insert="results/05_tdnascan/{sample}/{vector}/5.insertion.sam",
+		bed="results/05_tdnascan/{sample}/{vector}/5.{vector}_insertion.bed"
+	output:
+		"results/05_tdnascan/{sample}/{vector}/5.{vector}_insertion.reduce.bed"
+	threads: get_thread
+	resources: mem_mb=get_mem
+	params:
+		wd=WORKDIR
+	shell:
+		"""
+			rm -R {params.wd}/results/05_tdnascan/{wildcards.sample}/{wildcards.vector}/tmp
+			awk ' {{if ( $6 > 0 ) print $0}}' {input.bed} > {output}
+		"""
+
 rule tdnascan_annotate:
 	input:
-		"results/05_tdnascan/{sample}/{vector}/5.{vector}_insertion.bed"
+		"results/05_tdnascan/{sample}/{vector}/5.{vector}_insertion.reduce.bed"
 	output:
-		"results/05_tdnascan/{sample}/{vector}/5.{vector}_insertion.annotated.bed"
+		"results/05_tdnascan/{sample}/{vector}/5.{vector}_insertion.annotated.new.bed"
 	threads: get_thread
 	resources: mem_mb=get_mem
 	params:
 		gff=get_vector(config,"gff")[1],
-		install_dir=config["repo_script"]
+		install_dir=config["repo_script"],
+		wd=WORKDIR
 	conda:
 		"../envs/tdnascan.yaml"
 	shell:
 		"""
 		cd results/05_tdnascan/{wildcards.sample}
-		python2.7 {params.install_dir}/script/tdnaAnnot.py -i {input} -f {params.gff} -o {output}
+		python2.7 {params.install_dir}/script/tdnaAnnot.py -i {params.wd}/{input} -f {params.gff} -o {params.wd}/{output}
 		"""
 
 
@@ -130,7 +152,7 @@ rule tdnascan_annotate:
 def aggregate_vector(wildcards):
 	checkpoint_output=checkpoints.cut_vector_file.get(**wildcards).output[0]
 	#return expand("results/05_tdnascan/{s.sample}/{v}/5.{v}_insertion.bed", s=SAMPLE.itertuples(),v=glob_wildcards(os.path.join(checkpoint_output, "{v}.fa")).v)
- 	return expand("results/05_tdnascan/{s.sample}/{v}/5.{v}_insertion.annotated.bed", s=SAMPLE.itertuples(),v=glob_wildcards(os.path.join(checkpoint_output, "{v}.fa")).v)
+ 	return expand("results/05_tdnascan/{s.sample}/{v}/5.{v}_insertion.annotated.new.bed", s=SAMPLE.itertuples(),v=glob_wildcards(os.path.join(checkpoint_output, "{v}.fa")).v)
 
 rule aggregate:
 	input:

@@ -26,13 +26,20 @@ def get_mem(wildcards):
 	if get_vector(config,"ram")[0] == "TRUE":
 		return str(get_vector(config,"ram")[1])
 	else:
-		return "30G"
+		return "40G"
 #	try:
 #		value=config["ram"]
 #		return config["ram"]
 #	except:
 #		return "30G"
 #
+
+def get_size_insert(wildcards):
+	try:
+		value=config["insert_size"]
+		return int(config["insert_size"])
+	except:
+		return int("500")
 
 def transform_project_name(name):
 	new_name=re.sub(r"[.,;\n\t\s]*","",name)

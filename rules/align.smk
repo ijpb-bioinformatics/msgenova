@@ -50,7 +50,8 @@ rule mark_duplicate:
 	input:
 		"results/02_mapping/{sample}.sort.bam"
 	output:
-		sam=temp("results/02_mapping/{sample}.mark_duplicates.bam"),
+		#enlever temp pour avoir les vecteurs
+		sam="results/02_mapping/{sample}.mark_duplicates.bam",
 		metrics="results/02_mapping/{sample}.mark_duplicates.metrics"
 	threads: get_thread
 	resources:

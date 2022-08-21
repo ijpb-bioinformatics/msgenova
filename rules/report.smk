@@ -25,10 +25,14 @@ rule report:
 		flag=expand("results/02_mapping/flagstat/{s.sample}.flagstat",s=SAMPLE.itertuples()),
 		sample_file=config["sample"],
 		file_coverage=expand("results/02_mapping/coverage/{s.sample}.coverage",s=SAMPLE.itertuples()),
+		#expand("results/02_mapping/coverage/{s.sample}.coverage",s=SAMPLE.itertuples()),
 		reference=config["reference"],
+		qc_trimmo="results/01_sequence_qc/log/trimmomatic.log",
 		haplotype_caller_html="results/03_snv_indels_calling/"+NAME_PROJECT+"snpeff.html",
 		haplotype_caller_vcf="results/03_snv_indels_calling/"+NAME_PROJECT+"_snv_indel.vcf",
-		config="results/00_logs/config_advanced"
+		config="results/00_logs/config_advanced",
+		insertion=aggregate_vector,
+		pindel=get_input_gather_pindel
 	output:
 		"results/06_report/msgenova_report.html"
 	params:

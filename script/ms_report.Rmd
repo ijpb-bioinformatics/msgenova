@@ -1,7 +1,7 @@
 ---
-title: "MsGenova Project: Data analysis on variant calling from Illumina data"
+title: "MSGenova (Clean version) Rmakrdown Report"
 author: "Gabrièle Adam"
-date: "`r format(Sys.time(), '%d %B, %Y')`"
+date: "2022-08-16"
 output:
     html_document:
         highlight: tango
@@ -13,13 +13,16 @@ output:
             collapsed: no
             smooth_scroll: yes
 params:
-    result_dir: result_dir
-    rmd: "report.Rmd"
-    sample: sample
-    DP.min: DP.min
-    AR.min: AR.min
-    region: region
-    multiqc: multiqc
+  DP.min: DP.min
+  AR.min: AR.min
+  result_dir: result_dir
+  rmd: "report.Rmd"
+  sample: sample
+  trimmo: trimmo
+  multiqc: multiqc
+  vector: vector
+  flagstat: flagstat
+  haplotype_caller: haplotype_caller_vcf
 ---
 
 ```{r setup, include=FALSE}
@@ -30,18 +33,372 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(DT)
 library(ggplot2)
-```
-
-```{r define_params, echo=FALSE, warning=FALSE, error=FALSE}
+library(plyr)
+library(dplyr)
+library(shiny)
+vector_calling<-params$vector
+run_chromomap<-FALSE
 DP.min<-params$DP.min
 AR.min<-params$AR.min
 workspace<-params$result_dir
-region<-params$region
-multiqc<-params$multiqc
-print(region)
+sample_sheet<-params$sample
+trimmo<- params$trimmo
+flagstat<- params$flagstat
+haplotype_caller<- params$haplotype_caller
+setwd(workspace)
 ```
 
-# Source
-<a download="report.Rmd" href="`r base64enc::dataURI(file = params$rmd, mime = 'text/rmd', encoding = 'base64')`">R Markdown source file (to produce this document)</a>
-<a download="MultiQC report" href="`r base64enc::dataURI(file = params$multiqc, mime = 'text/rmd', encoding = 'base64')`">MultiQC report in HTML formata</a>
-<a download="Report_snpeff.html" href="`r base64enc::dataURI(file = params$multiqc, mime = 'text/rmd', encoding = 'base64')`">HTML report obtained after snpeff on GenomicsVCF data</a>
+```{r define_function}
+search_identical_insertion<-function(final_table,threashold){
+  list_index<-c()
+  # we are gonna filter by vector, then order table bu chr, position, and sample. Next compute the distance between 2 lines (0 then che change).Next use a threshold and filter this table
+  new_tab<-as_tibble(final_table) %>% dplyr::arrange(vector,Chr,Breakpoint,sample)
+  for (i in 1:nrow(new_tab)){
+    if(i ==1){
+      #case for line =1
+      next
+    }
+    if((new_tab[i,1] == new_tab[i-1,1]) & ((new_tab[i,2] - new_tab[i-1,2]) <= threashold )){
+      list_index <- append(list_index,c(i-1,i))
+    }
+  }
+  # now get line in final table
+  identical_insertion<-new_tab[unique(list_index),]
+  return(identical_insertion)
+}
+
+freq_length_bewteen_insertion<-function(final_table){
+  # Must be done by sample
+  length_between<-c()
+  for (v in unique(final_table$sample)){
+    for (spl in unique(final_table$sample)){
+  new_tab<-as_tibble(final_table)  %>% dplyr::filter(sample==spl & vector==v) %>% dplyr::arrange(Chr,Breakpoint)
+  if(nrow(new_tab) != 0){
+  for (i in 1:nrow(new_tab)){
+    if(i ==1){
+      #case for line =1
+      next
+    }
+   if((new_tab[i,1] == new_tab[i-1,1])){
+    length_between <-append(length_between,as.integer(new_tab[i,2] - new_tab[i-1,2]))
+   }
+  }
+  }
+    }
+  }
+  return(length_between)
+}
+
+read_file<-function(pathway){
+#sample<-list.files(getwd())
+#vector<-list.files(list.files(getwd())[1])
+sample<-list.files(pathway)
+vector<-list.files(paste0(pathway,"/",sample[1]))
+i=0
+for (spl in sample){
+  for (v in vector){
+    table<-read.table(paste0(pathway,"/",spl,"/",v,"/5.",v,"_insertion.annotated.bed"),header = FALSE,col.names = c("Chr","Breakpoint","SuppRead","TDNA_info","Orientation","Freq","Annotation"))
+    if(! nrow(table)==0){
+      #add sample and vector columns
+      table["sample"]<-spl
+      table["vector"]<- v
+      if(i==0){
+        final_table<-table
+        i=i+1
+      }else{
+        final_table<-rbind(table,final_table)
+      }
+      i=i+1
+    }
+  }
+}
+return(final_table)
+}
+```
+
+`r ifelse(vector_calling,"# Study Plasmidic insertion","")`
+
+```{r define_variable}
+#sample<-list.files(getwd())
+#vector<-list.files(list.files(getwd())[1])
+pathway=paste0(workspace,"/05_tdnascan/")
+sample<-list.files(pathway)
+vector<-list.files(paste0(pathway,"/",sample[1]))
+# read sample file
+sample_sheet<-read.table(sample_sheet,sep="\t",header=TRUE)
+```
+
+```{r read_input}
+final_tab<-read_file(pathway)
+DT::datatable(final_tab)
+final_tab2<- final_tab %>% separate(col=TDNA_info,sep=",",into=c("tdna_st","tdna_end"))  %>% mutate(tdna_st=str_replace(tdna_st,"tdna_st:","")) %>% mutate(tdna_end=str_replace(tdna_end,"tdna_end:","")) %>% mutate(tdna_st=str_replace(tdna_st,"-","0")) %>% mutate(tdna_end=str_replace(tdna_end,"-","0")) %>% mutate(tdna_st=as.numeric(as.character(tdna_st))) %>% mutate(tdna_end=as.numeric(as.character(tdna_end))) %>% mutate(length_break=abs(tdna_end - tdna_st)) %>% mutate(breakpoint_end=Breakpoint+length_break) %>% mutate(name=paste(Chr,Breakpoint,vector,sample,sep="-"))  %>% select(name,Chr,Breakpoint,breakpoint_end,vector,sample)
+DT::datatable(final_tab2)
+```
+
+## By vector, how many insertions are there by chromosome ?{.tabset .tabset-fade}
+
+```{r barplot_snp, results='asis'}
+#For one vector, look if it insert at the same position for several sample with a threshold for space between position
+for (v in vector){
+  sub_table<-filter(final_tab,vector==v) %>% group_by(Chr,sample) %>% dplyr::count(name="nbr_inster_by_chr")
+  #datatable(sub_table)
+  #count_tab<- count(sub_table,Chr)
+  if(nrow(sub_table)> 0){
+    cat("###",v,"\n")
+  g<- ggplot(sub_table,aes(x=Chr,y=nbr_inster_by_chr,fill=sample))+geom_bar(stat="identity")+xlab("Numbre of insertion by chromosome")+ylab("Chromosome")+ggtitle(paste0("Number of in sertion of vector ",v," by chromosome"))+theme_bw()
+  print(g)
+  }
+  cat('\n\n')
+}
+```
+
+## What are the size between the insertion
+
+```{r length_between_insertion}
+list_of_size<- freq_length_bewteen_insertion(final_tab)
+#size<-as.data.frame(list_of_size,rep("insertion",times=length(list_of_size)))
+#ggplot(size,aes(x=list_of_size))+geom_density()+xlim(min(list_of_size),max(list_of_size))
+size<-as.data.frame(count(list_of_size))
+ggplot(size,aes(x=x,y=freq))+geom_point()+ylim(0,(max(size$freq)+1))
+ggplot(size,aes(x=factor(x)))+geom_bar(stat = "count")
+```
+
+## Are there the same vector insertion for several sample - New version ?
+```{r essai_shiny}
+#list_size<-freq_length_bewteen_insertion(final_tab)
+#cts<-count(list_size)
+#print(cts)
+#final_tab<-read_file("/home/gabriele.adam/Documents/Msgenova/sortie_msgenova/05_tdnascan/data")
+essai<-search_identical_insertion(final_tab,5000)
+DT::datatable(essai)
+```
+
+`r ifelse(vector_calling,"# how many samples have insertion of which vector and which do not have any - version barplot?","")`
+
+```{r plot_by_chr_tuto, eval=TRUE, echo = TRUE}
+#Establish list of sample without any insertion
+no_insertion<-c()
+#gff3<-"~/Documents/Msgenova/ref_arabido/Ath-Col0-tair10-WG/Arabidopsis_thaliana.TAIR10.41.gff3"
+# read gff3 and extract size of chromosome ?? - > Jump to final table
+##sequence-region   1 1 30427671
+##sequence-region   2 1 19698289
+##sequence-region   3 1 23459830
+##sequence-region   4 1 18585056
+##sequence-region   5 1 26975502
+##sequence-region   Mt 1 366924
+##sequence-region   Pt 1 154478
+table_size_chr<-data.frame(c(paste0("Chr",c(1:5,"Mt","Pt"))),c(30427671,19698289,23459830,18585056,26975502,366924,154478))
+colnames(table_size_chr)<-c("Chr","Size")
+for (spl in unique(final_tab$sample)){
+  sub_table<-dplyr::filter(final_tab,sample==spl)
+  if(nrow(sub_table)==0){
+    print("yes")
+    no_insertion<-append(no_insertion,spl)
+  }else{
+ bp<- graphics::barplot(table_size_chr$Size,border=NA,names.arg = table_size_chr$Chr,main=paste0("Barplot showing plasmidic insertion on sample ",spl),horiz=TRUE)
+ rownames(bp)<-table_size_chr$Chr
+    with(sub_table,segments(sub_table$Breakpoint,bp[sub_table$Chr,]-0.5,sub_table$Breakpoint,bp[sub_table$Chr,]+0.5),bp[sub_table$Chr,]+0.5,col=sub_table$vector)
+  #print(bp)
+  }
+}
+print("List of vector without any plasmid insertion")
+print(no_insertion)
+
+```
+
+`r ifelse(run_chromomap,"#how many samples have insertion of which vector and which do not have any - version chromoMap","")`
+
+```{r chromomap , eval =run_chromomap, echo=run_chromomap}
+library(chromoMap)
+path<-"/home/gabriele.adam/Documents/Msgenova/sortie_msgenova/chromomap/"
+chr<-paste0(path,"chr_size")
+annotation<-paste0(path,"annotation.tsv")
+for (spl in unique(final_tab$sample)){
+  sub_table<-dplyr::filter(final_tab,sample==spl)
+  if(nrow(sub_table)==0){
+    print("yes")
+    no_insertion<-append(no_insertion,spl)
+  }else{
+ bp<- barplot(table_size_chr$Size,border=NA,names.arg = table_size_chr$Chr,main=paste0("Barplot showing plasmidic insertion on sample ",spl))
+ rownames(bp)<-table_size_chr$Chr
+  with(sub_table,segments(bp[sub_table$Chr,]-0.5,sub_table$Breakpoint,bp[sub_table$Chr,]+0.5),sub_table$Breakpoint,col=sub_table$vector)
+  }}
+chromoMap(chr,annotation)
+sub_table<-dplyr::filter(final_tab,sample==spl) %>% separate(col=TDNA_info,sep=",",into=c("tdna_st","tdna_end"))  %>% mutate(tdna_st=str_replace(tdna_st,"tdna_st:","")) %>% mutate(tdna_end=str_replace(tdna_end,"tdna_end:","")) %>% mutate(tdna_st=str_replace(tdna_st,"-","0")) %>% mutate(tdna_end=str_replace(tdna_end,"-","0")) %>% mutate(tdna_st=as.numeric(as.character(tdna_st))) %>% mutate(tdna_end=as.numeric(as.character(tdna_end))) %>% mutate(length_break=abs(tdna_end - tdna_st)) %>% mutate(breakpoint_end=Breakpoint+length_break) %>% mutate(name=paste(Chr,Breakpoint,vector,sample,sep="-"))  %>% select(name,Chr,Breakpoint,breakpoint_end,vector)
+write.table(sub_table,file=paste0(path,"annot2.tsv"),sep="\t",row.names = FALSE)
+chromoMap(chr,paste0(path,"annot2.tsv"))
+```
+
+## Trimming parameters
+
+```{r trimmomatic}
+dat<-read.table(text=gsub(" ","\t",readLines(trimmo)),  header=TRUE)
+DT::datatable(dat)
+```
+
+## Mapping parameters
+
+### Flagstat results
+
+```{r flagstat}
+library(tidyverse)
+file <- flagstat
+if(file.exists(file)){
+    flagstat <- read.table(file, sep="\t", header=FALSE) %>% 
+      dplyr::mutate(mapped=V3-V4, unmapped=V2-V3, supplementary=V4, 
+                    mapped.ratio=round(mapped/(mapped+unmapped)*100,2), 
+                    unmapped.ratio=round(unmapped/(mapped+unmapped)*100,2),
+                    supplementary.ratio=round(supplementary/(mapped+unmapped)*100,2)) %>% dplyr::select(-V2, -V3, -V4)
+    names(flagstat) <- c("sample", "mapped", "unmapped", "supplementary", "mapped.ratio", "unmapped.ratio", "supplementary.ratio")
+
+  } 
+
+DT::datatable(flagstat, options = list(rownames = TRUE, pageLength = 10, scrollX = T, dom = 'tip'),class = 'cell-border stripe')
+#count
+nbr.reads.melt <- flagstat %>% dplyr::select(sample, mapped, unmapped, supplementary) %>% reshape2::melt(id = "sample", value.name = "nbr.reads")
+summary.nbr <- nbr.reads.melt %>% group_by(variable) %>% summarise(median=median(nbr.reads), max=max(nbr.reads), min=min(nbr.reads))
+nbr.reads.melt <- left_join(nbr.reads.melt, summary.nbr, by = "variable") %>% mutate(x.label=paste0(variable, "\nmedian=", median, "\nmax=", max, "\nmin=", min))
+ggplot(data = nbr.reads.melt, aes(y=nbr.reads, x=x.label)) + geom_boxplot()  + xlab("") + ylab("number of reads") + ggtitle("Boxplot representing the number of mapped/supplementary/unmapped reads")+theme_bw()
+#ratio
+ratio.reads.melt <- flagstat %>% dplyr::select(sample, mapped.ratio, supplementary.ratio) 
+names(ratio.reads.melt) <- c("sample", "mapped", "supplementary")
+ratio.reads.melt <- ratio.reads.melt %>% reshape2::melt(id = "sample", value.name = "ratio")
+summary.ratio <- ratio.reads.melt %>% group_by(variable) %>% summarise( median=round(median(ratio),2), max=round(max(ratio),2), min=round(min(ratio),2))
+ratio.reads.melt <- left_join(ratio.reads.melt, summary.ratio, by = "variable") %>% mutate(x.label=paste0(variable, "\nmedian=", median, "%\nmax=", max, "%\nmin=", min, "%"))
+ggplot(data = ratio.reads.melt) + geom_boxplot(aes(y=ratio, x=x.label)) + xlab("") + ylab("% reads") + scale_y_continuous(breaks = seq(0, max(ratio.reads.melt$ratio)+10, 20)) + ggtitle("Boxplot representing the percentage of mapped reads and supplementary alignments")+theme_bw()
+
+```
+
+### Coverage analysis
+```{r coverage}
+cov.list <- lapply(sample_sheet$sample, function(x){
+  file <- paste0(workspace,"/03_mapping/coverage/", x, ".coverage")
+  if(file.exists(file)){
+    
+    read.table(file, sep="\t") %>%  dplyr::filter(V4 > 1)  %>% dplyr::mutate(sample = x)
+  }
+})
+
+cov <- purrr::reduce(cov.list, rbind) %>% dplyr::mutate(nbr_reads=dplyr::if_else(V4 >= 15, ">15X", "<15X"))
+colnames(cov) <- c("rname",	"startpos",	"endpos",	"numreads",	"covbases",	"coverage",	"meandepth",	"meanbaseq",	"meanmapq", "sample", "nbr_reads")
+#cov <- cov %>% left_join(bed.tab, by=c("rname","startpos"="start","endpos"="stop")) 
+cov.summary <- cov %>% group_by(rname) %>% summarise(min=min(numreads), max=max(numreads), median=round(median(numreads)))
+cov <- left_join(cov, cov.summary, by = c("rname") )%>% mutate(x.label=paste0(rname, "\nmedian=", median, "\nmax=", max, "\nmin=", min)) 
+for (i in unique(sample_sheet$sample)){
+cat("####",i,"\n")
+g<-ggplot(filter(cov,sample==i)) + geom_boxplot(aes(y=numreads, x=x.label)) + xlab("") + ylab("#reads") + ggtitle("Plot coverage")+facet_wrap(. ~ sample,scales = "free")+theme(axis.text.x=element_text(angle=90,hjust=1))+theme_bw()
+print(g)
+cat('\n\n')
+}
+```
+
+#### Depth analysis
+```{r depth_analysis}
+cov.list <- lapply(sample_sheet$sample, function(x){
+
+  file <- paste0(workspace,"/03_mapping/depth/", x, ".depth")
+  if(file.exists(file)){
+    read.table(file, sep="\t")  %>% dplyr::mutate(plant = x)
+  }
+})
+
+depth <- purrr::reduce(cov.list, rbind)
+colnames(depth) <- c("rname", "position", "depth", "plant")
+#depth <- depth %>% left_join(bed.tab, by="rname")  %>% filter(position >=start, position <= stop)
+heading<-as.character(unique(sample_sheet$sample))
+for (i in unique(cov$rname)){
+ cat("####",i,"\n")
+  p <- ggplot(data = filter(depth,rname== i)) + geom_line(aes(x=position, y=depth, color=plant))   + theme(legend.position="none", axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ylab("Depth of coverage")+facet_grid(~rname, scales = "free") 
+  print(p)
+cat('\n\n')
+}
+
+```
+
+```{r proportion_of, results='asis',echo=FALSE, eval=FALSE, warning=FALSE, error=FALSE,results=FALSE}
+for (i in unique(bed.tab$target)){
+ cat("####",i,"\n")
+tmp <- cov  %>% filter(target== i) %>% group_by(nbr_reads, target, amplicon) %>% count(name = "#well") 
+g1<-ggplot(data = tmp) + geom_bar(aes(x=amplicon, y=`#well`, fill=nbr_reads), stat = "identity") + xlab("") +facet_grid(~target, scales = "free")
+g2<-cov %>% filter(target== i) %>% group_by(well, nbr_reads,target) %>% count(name = "amplicon") %>% filter(nbr_reads == ">15X") %>% group_by(amplicon,target) %>% count(name = "#well") %>% ggplot(aes(x = amplicon, y = `#well`)) + geom_bar(stat = "identity") + xlab("nbr of amplicon covered at >15X")
+print(g1)
+print(g2)
+cat('\n\n')
+}
+```
+
+## Study of SNV and Indels calling
+
+```{r define_r_fct_multiallele, echo=FALSE}
+vcfR_split_multiAlt <- function(vcfR.tid, nbrAlt=NULL){
+
+  vcfR.tid.tmp <- 
+    dplyr::mutate(vcfR.tid, nb.allele=unlist(lapply(str_split(string = vcfR.tid$gt_AD, pattern = ","), function(x){return(length(x))}))) %>%
+    dplyr::mutate(nb.allele=nb.allele-1)
+  
+  vcfR.tid.list <- lapply(unique(vcfR.tid.tmp$nb.allele), function(x){
+    
+    tmp <- vcfR.tid.tmp %>% dplyr::filter(nb.allele == x) %>%
+      tidyr::separate(col = gt_AD, into = c("gt_ref_AD", paste0("gt_alt_AD",1:x)), sep = ",", remove = FALSE) %>%
+      tidyr::separate(col = ALT,   into = paste0("ALT" ,1:x), sep = ",", remove = FALSE) %>%
+      tidyr::separate(col = AC,    into = paste0("AC" ,1:x),  sep = ",", remove = FALSE) %>%
+      tidyr::separate(col = AF,    into = paste0("AF" ,1:x),  sep = ",", remove = FALSE) %>%
+      tidyr::separate(col = MLEAF, into = paste0("MLEAF" ,1:x),  sep = ",", remove = FALSE) %>%
+      tidyr::separate(col = MLEAC, into = paste0("MLEAC" ,1:x),  sep = ",", remove = FALSE)
+    
+    tmp.list <- lapply(1:x, FUN = function(i){ 
+    
+        tmp.split <- dplyr::mutate(tmp,  gt_alt_AD = as.numeric(get(paste0("gt_alt_AD", i))) ,
+                                         gt_AR     = as.numeric(get(paste0("gt_alt_AD", i)))/gt_DP, 
+                                         ID_old    = ID,
+                                         gt_AD_old = gt_AD, gt_AD = paste0(gt_ref_AD, ",", get(paste0("gt_alt_AD", i))),
+                                         ALT_old   = ALT,   ALT   = get(paste0("ALT", i)),
+                                         AC_old    = AC,    AC    = get(paste0("AC", i)),
+                                         AF_old    = AF,    AF    = get(paste0("AF", i)),
+                                         MLEAF_old = MLEAF, MLEAF = get(paste0("MLEAF", i)),
+                                         MLEAC_old = MLEAC, MLEAC = get(paste0("MLEAC", i)),
+                                         ID = paste(CHROM, POS, REF, ALT, sep="_"),
+                                   ) %>%
+        dplyr::select(-gt_ref_AD, 
+                      -paste0("ALT", 1:x), 
+                      -paste0("gt_alt_AD", 1:x),  
+                      -paste0("AC", 1:x),
+                      -paste0("AF", 1:x),
+                      -paste0("MLEAF", 1:x),
+                      -paste0("MLEAC", 1:x)) %>%
+        dplyr::filter(ALT != "*")
+        
+        })
+    
+        return(tmp.list %>% purrr::reduce(rbind))
+    })
+  
+    return(purrr::reduce(vcfR.tid.list, rbind))
+}
+```
+
+```{r , echo=FALSE, warning=FALSE, error=FALSE}
+vcfR.inst <- vcfR::read.vcfR(haplotype_caller)
+
+vcfR.tid.list <- vcfR::vcfR2tidy(vcfR.inst)
+
+vcfR.tid <- full_join(vcfR.tid.list$fix, vcfR.tid.list$gt, by = c("ChromKey", "POS")) %>% 
+            dplyr::mutate(ID = dplyr::if_else(is.na(ID), paste(CHROM, POS, REF, ALT, sep="_"), ID)) 
+
+variants <- vcfR_split_multiAlt(vcfR.tid) %>%
+  dplyr::mutate(gt_AR_corr = dplyr::if_else(gt_AR < AR.min, 0, gt_AR),
+         gt_AR_corr = dplyr::if_else(gt_DP < 4,   0, gt_AR_corr),
+         gt_DP_corr = dplyr::if_else(gt_DP < 4,   0, as.numeric(gt_DP)),
+         var_type   = dplyr::if_else(str_length(REF) == str_length(ALT), "SNV", dplyr::if_else(str_length(REF) > str_length(ALT), "DEL", "INS")),
+         var_length = str_length(ALT) - str_length(REF),
+         var_class  = dplyr::if_else(var_length == 0, var_type, 
+                      dplyr::if_else(abs(var_length) == 1,  paste0(var_type, "1"),
+                      dplyr::if_else(abs(var_length) >  50, paste0(var_type, ">50"), paste0(var_type, "<50"))))) 
+
+variants.control <- variants %>% filter(Indiv %in% dplyr::filter(sample_sheet, condition == "WT")$plant, gt_AR_corr > 0) 
+variants.freq_corr <- variants %>% filter(gt_AR_corr > 0, !is.na(gt_AR_corr)) %>% 
+  select(ID, Indiv, target,amplicon) %>% unique() %>% group_by(ID, target,amplicon) %>% count(name="freq")
+
+variants <- variants %>% dplyr::filter(!ID %in% variants.control$ID) %>% dplyr::full_join(variants.freq_corr, by = c("ID", "target","amplicon"))
+#DT::datatable(variants)
+```

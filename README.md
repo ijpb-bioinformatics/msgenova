@@ -25,18 +25,22 @@ The configuration file contains pathways to all the inputs needed to run the pip
 * **reference**: pathway to the reference, that must be in fasta format
 * **gff**: pathway to the annotation file in gff format
 * **project_name**: name for the project
+* **DP.min: Minimum sequencing depth for variant filtering
+* **AR.min: Min AR value for variant filtering
 ```bash
 #Exemple of configuration file
 sample: "pathway_to_sample_sheet"
 reference: "pathway_to_reference"
 gff: "pathway_to_reference_annotation"
 project_name: "project_name"
+AR.min: 0.4
+DP: 2
 ```
 sample, reference, gff and project name are mandatory attributes. Other attributes can also be specified:
 * **regions**: 4 columns file containing coordinates to the regions of interests (optional). This file should have 4 columns: chromosome, begining of the region, end of the region, name of the region
 * **vector** : Vector sequences in fasta format (in order to look for vector insertion in the data) (optional)
 * **min.DP** : Minimum sequencing depth for variant analysis
-* **min.AD**: Minimum AD value for variant analysis
+* **min.AR**: Minimum AD value for variant analysis
 * **cpu**: cpu given for each job of the analysis (default: 8)
 * **ram**: ram given for each job of the pipeline (default: 30G)
 ### 2.2 Input files

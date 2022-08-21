@@ -96,3 +96,23 @@ rule trimmed_fqc1:
 		fastqc --outdir	results/01_sequence_qc/	{params.extra} {input}
 		"""
 
+rule concatenate_log_trimmomatic:
+	input:
+		expand("results/01_sequence_qc/log/{s.sample}.trimmomatic.log", s=SAMPLE.itertuples()),
+	output:
+		"results/01_sequence_qc/log/trimmomatic.log"
+	threads: get_thread
+	resources: mem_mb=get_mem
+	params:
+		wd=WORKDIR
+	shell:
+		"""
+		line=`cat {input[0]} | grep Surviving| sed 's/)/)\\n/g' | sed 's/Both/\\nBoth/g' | sed 's/:.*//g' | sed 's/$/-/g'| sed 's/\t//g' | sed 's/ //g'| tr -d "\n" | sed 's/-/\t/g' `
+		echo -e "Sample\t"$line >> {output}
+		for file in {input}
+		do
+			s_name=`basename {params.wd}/$file | sed 's/\.trimmomatic\.log//g' `
+			line=`cat $file | grep Surviving| sed 's/)/)\\n/g' | sed 's/Both/\\nBoth/g' | sed 's/.*://g' | sed 's/$/-/g'| sed 's/\t//g' | sed 's/ //g'| tr -d "\n" | sed 's/-/\t/g' `	
+			echo -e $s_name"\t"$line >> {output}
+		done
+		"""
