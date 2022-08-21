@@ -51,7 +51,7 @@ rule mark_duplicate:
 		"results/02_mapping/{sample}.sort.bam"
 	output:
 		#enlever temp pour avoir les vecteurs
-		sam="results/02_mapping/{sample}.mark_duplicates.bam",
+		sam=temp("results/02_mapping/{sample}.mark_duplicates.bam"),
 		metrics="results/02_mapping/{sample}.mark_duplicates.metrics"
 	threads: get_thread
 	resources:
