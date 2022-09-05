@@ -39,7 +39,7 @@ rule report:
 	params:
 		workdir=config["repo_script"],
 		DP=config["DP.min"],
-		AR=config["AD.min"],
+		AR=config["AR.min"],
 		vector=get_vector(config,"vector")[1]
 	conda:
 		"../envs/R.yaml"

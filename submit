@@ -1,5 +1,6 @@
 #!/bin/bash
 module load bioinfo/snakemake-7.8.1
+conda config --set channel_priority strict
 #path=$2 # result dir
 #config=$1 # config file
 pipeline_path=$(dirname $0) # path of pipeline source
