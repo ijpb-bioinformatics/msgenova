@@ -1,3 +1,4 @@
+
 rule copy_config:
 	"""
 	Copy config advanced in 00_logs
@@ -32,19 +33,19 @@ rule report:
 		haplotype_caller_vcf="results/03_snv_indels_calling/"+NAME_PROJECT+"_snv_indel.vcf",
 		config="results/00_logs/config_advanced",
 		insertion=aggregate_vector,
-		pindel=get_input_gather_pindel
+		#pindel=get_input_gather_pindel
 	output:
 		"results/06_report/msgenova_report.html"
 	params:
 		workdir=config["repo_script"],
-		DP=4,
-		AR=0.2,
-		#region=dict_chr.values()
+		DP=config["DP.min"],
+		AR=config["AD.min"],
+		vector=get_vector(config,"vector")[1]
 	conda:
 		"../envs/R.yaml"
 	threads: get_thread
 	resources:
 		mem_mb=get_mem
 	shell:
-		"Rscript -e \"rmarkdown::render('{params.workdir}/script/ms_report.Rmd', output_file = '{params.workdir}/{output}', params = list(result_dir='{params.workdir}/results/', sample='{input.sample_file}', DP.min='{params.DP}', AR.min='{params.AR}', multiqc='{params.workdir}/{input.multiqc}'))\""
+		"Rscript -e \"rmarkdown::render('{params.workdir}/script/ms_report.Rmd', output_file = '{params.workdir}/{output}', params = list(result_dir='{params.workdir}/results/', sample='{input.sample_file}', DP.min='{params.DP}', AR.min='{params.AR}', multiqc='{params.workdir}/{input.multiqc}', vector='{params.vector}', trimmo='{params.workdir}/{input.qc_trimmo}',flagstat='{params.workdir}/{input.flag}',haplotype_caller_vcf='{params.workdir}/{input.haplotype_caller_vcf}'))\""
 
