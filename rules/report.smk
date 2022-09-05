@@ -39,7 +39,7 @@ rule report:
 		workdir=config["repo_script"],
 		DP=4,
 		AR=0.2,
-		region=dict_chr.values()
+		#region=dict_chr.values()
 	conda:
 		"../envs/R.yaml"
 	threads: get_thread

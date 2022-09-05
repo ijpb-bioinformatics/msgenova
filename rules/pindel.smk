@@ -56,7 +56,7 @@ rule run_pindel:
 		"""
 
 
-def get_input_gather_pindel(wilkdcards):
+def get_input_gather_pindel(wildcards):
 	list=[]
 	if (get_vector(config,"regions")[0] == "TRUE") :
 		region_p=[]

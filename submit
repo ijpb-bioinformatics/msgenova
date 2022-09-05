@@ -1,12 +1,13 @@
 #!/bin/bash
 module load bioinfo/snakemake-7.8.1
-path=$2 # result dir
-config=$1 # config file
+#path=$2 # result dir
+#config=$1 # config file
 pipeline_path=$(dirname $0) # path of pipeline source
-
-path="/work/gadam/msgenova"
-config="/work/gadam/msgenova"
-pipeline_path="/work/gadam/msgenova"
+SV=FALSE # structural variantion calling
+AR=FALSE # allele ratio distribution
+#path="/work/gadam/msgenova"
+#config="/work/gadam/msgenova"
+#pipeline_path="/work/gadam/msgenova"
 
 #sbatch snakemake -p --snakefile ${pipeline_path}/Snakefile --config repo_script=${pipeline_path} --configfile $path/config_user --cluster-config ${pipeline_path}/cluster_config.json --cluster "sbatch --output {cluster.output} --error {cluster.error} --cpus-per-task {threads} --job-name {rule} --mem {resources.mem_mb} " --jobs 200 --latency-wait 90 --use-envmodules --use-conda --stats stat.json  --directory $path --conda-prefix $path >& snakemake.log
 
@@ -16,7 +17,7 @@ usage() { echo "Usage: $0 [-c <configuration_file>] [-o <output_directory>]" 1>&
 
 # getops alllows to loop other the argument to check their integrity
 
-while getopts ":c:o:ar:" option;do
+while getopts "c:o:s" option;do
 	# getopts OPTSTRING VARNAME [ARGS ...]
 	# for OPTSTRING v= check for options -v without parameters
 	#		v: = check for options with parameters
@@ -24,12 +25,20 @@ while getopts ":c:o:ar:" option;do
 	#		:vp = check for options -v -p and silences errors
 	case "${option}" in
 		c)
-			c=${OPTARG}
-			echo "Configuration file: ${c}"
+			config=${OPTARG}
+			echo "Configuration file: ${config}"
 			;;
 		o)
-			o=${OPTARG}
-			echo "Output directory: ${o}"
+			outdir=${OPTARG}
+			echo "Output directory: ${outdir}"
+			;;
+		s)
+			SV=TRUE
+			echo "Structural variants: TRUE"
+			;;
+		r)
+			AR=TRUE
+			echo "Structural variants: TRUE"
 			;;
 		#all the other argument -> use *
 		*)
@@ -42,8 +51,8 @@ done
 shift $((OPTIND-1))
 
 #Verify that all parameters are well written -> Verify of a string is empty or not
-if [ -z "${o}" ] || [ -z "${c}" ] ; then
+if [ -z "${outdir}" ] || [ -z "${config}" ] ; then
 	usage
 else
-	sbatch snakemake -p --snakefile ${pipeline_path}/Snakefile --config repo_script=${pipeline_path} --configfile $path/$c --cluster-config ${pipeline_path}/cluster_config.json --cluster "sbatch --output {cluster.output} --error {cluster.error} --cpus-per-task {threads} --job-name {rule} --mem {resources.mem_mb} " --jobs 200 --latency-wait 90 --use-envmodules --use-conda --stats stat.json  --directory $o --conda-prefix $o --conda-frontend mamba >& snakemake.log
+	sbatch snakemake -p --snakefile ${pipeline_path}/Snakefile --config repo_script=${pipeline_path} SV=${SV} AR=${AR}  --configfile $config --cluster-config ${pipeline_path}/cluster_config.json --cluster "sbatch --output {cluster.output} --error {cluster.error} --cpus-per-task {threads} --job-name {rule} --mem {resources.mem_mb} " --jobs 200 --latency-wait 90 --use-envmodules --use-conda --stats stat.json  --directory $outdir --conda-prefix $pipeline_path --conda-frontend mamba >& snakemake.log
 fi
