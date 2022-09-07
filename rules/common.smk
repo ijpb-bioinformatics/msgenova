@@ -45,6 +45,18 @@ def transform_project_name(name):
 	new_name=re.sub(r"[.,;\n\t\s]*","",name)
 	return new_name
 
+def get_DP(wildcards):
+	if get_vector(config,"DP.min")[0] == "TRUE":
+		return str(get_vector(config,"DP.min")[1])
+	else:
+		return "5"
+
+def get_AR(wildcards):
+	if get_vector(config,"AR.min")[0] == "TRUE":
+		return str(get_vector(config,"AR.min")[1])
+	else:
+		return "0.2"
+
 def get_config_key(cfg,key,bool_var,dict):
 	try:
 		value=cfg[key]

@@ -5,7 +5,7 @@ checkpoint cut_vector_file:
 		directory("results/genome/tdnascan/vectors/")
 		#expand("results/genome/tdnascan/vectors/{vector}.fa",vector=LIST_VECTOR)
 	conda:
-		"../envs/ucsc.yaml"
+		"../envs/tdnascan.yaml"
 	threads: get_thread
 	resources: mem_mb=get_mem
 	params:
@@ -28,7 +28,7 @@ rule index_vector:
 	threads: get_thread
 	resources: mem_mb=get_mem
 	conda:
-		"../envs/align.yaml"
+		"../envs/tdnascan.yaml"
 	params:
 		extra=config["params_bwa_index_reference"],
 		wk=WORKDIR,
@@ -69,7 +69,7 @@ rule prepare_reference_tdnascan:
 		wk=WORKDIR,
 		extra=config["params_bwa_index_reference"]
 	conda:
-		"../envs/align.yaml"
+		"../envs/tdnascan.yaml"
 	shell:
 		"""
 		ln -s {input.ref} {params.wk}/{output.ref}
@@ -106,8 +106,9 @@ rule tdnascan:
 		fi
 		mkdir -p results/05_tdnascan/{wildcards.sample}/{wildcards.vector}
 		cd results/05_tdnascan/{wildcards.sample}
+		path_script=`readlink -f {params.install_dir}/script/tdnascan.py`
 		# add argument for install parameters
-		python2.7 {params.install_dir}/script/tdnascan.py -1 {params.wk}/{input.fq1} -2 {params.wk}/{input.fq2} -t {params.wk}/{input.vector} -g {params.wk}/{input.reference} -p {wildcards.vector} -@ {threads} -i {params.wk}/script -d {params.wk}/results/05_tdnascan/{wildcards.sample} {params.extra}
+		python2.7 $path_script -1 {params.wk}/{input.fq1} -2 {params.wk}/{input.fq2} -t {params.wk}/{input.vector} -g {params.wk}/{input.reference} -p {wildcards.vector} -@ {threads} -i {params.wk}/script -d {params.wk}/results/05_tdnascan/{wildcards.sample} {params.extra}
 		"""
 
 rule clean_and_delete_tdnascan:
@@ -144,7 +145,8 @@ rule tdnascan_annotate:
 	shell:
 		"""
 		cd results/05_tdnascan/{wildcards.sample}
-		python2.7 {params.install_dir}/script/tdnaAnnot.py -i {params.wd}/{input} -f {params.gff} -o {params.wd}/{output}
+		path_script=`readlink -f {params.install_dir}/script/tdnaAnnot.py`
+		python2.7 $path_script -i {params.wd}/{input} -f {params.gff} -o {params.wd}/{output}
 		"""
 
 

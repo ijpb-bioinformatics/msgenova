@@ -4,7 +4,7 @@ rule flagstat:
 	output:
 		"results/02_mapping/flagstat/{sample}.flagstat"
 	conda:
-		"../envs/samtools.yaml"
+		"../envs/picard.yaml"
 	threads: get_thread
 	resources:
 		mem_mb=get_mem
@@ -25,6 +25,8 @@ rule samtools_coverage_by_regions:
 	resources: mem_mb=get_mem
 	params:
 		extra=config["params_samtools_coverage"]
+	conda:
+		"../envs/picard.yaml"
 	shell:
 		"""
 			samtools coverage -r {wildcards.chr}:{wildcards.beg}-{wildcards.end} -o {output} {params.extra} {input.bam}
@@ -48,7 +50,7 @@ rule samtools_coverage:
 	output:
 		"results/02_mapping/coverage/{sample}.temp.coverage"
 	conda:
-		"../envs/samtools.yaml"
+		"../envs/picard.yaml"
 	threads: get_thread
 	resources:
 		mem_mb=get_mem
@@ -89,7 +91,7 @@ rule samtools_depth:
 	output:
 		"results/02_mapping/depth/{sample}.depth"
 	conda:
-		"../envs/samtools.yaml"
+		"../envs/picard.yaml"
 	threads: get_thread
 	resources:
 		mem_mb=get_mem

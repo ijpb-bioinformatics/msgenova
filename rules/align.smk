@@ -12,7 +12,7 @@ rule align:
 	params:
 		extra=config["params_bwa"]
 	conda:
-		"../envs/align.yaml"
+		"../envs/tdnascan.yaml"
 	threads: get_thread
 	resources:
 		mem_mb=get_mem

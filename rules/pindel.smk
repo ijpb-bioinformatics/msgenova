@@ -1,8 +1,8 @@
 rule create_input_pindel:
 	input:
-		expand("results/02_mapping/bam/{s.sample}.bam", s=SAMPLE.itertuples()),
+		"results/02_mapping/bam/{sample}.bam"
 	output:
-		"results/04_pindel/input_pindel.txt"
+		"results/04_pindel/input_pindel_{sample}.txt"
 	params:
 		wd=WORKDIR,
 		ins_size=get_size_insert
@@ -14,73 +14,26 @@ rule create_input_pindel:
 		then
 			mkdir -p {params.wd}/results/04_pindel/
 		fi
-		for file in {input}
-		do
-			nom=`basename $file`
-			echo -e "{params.wd}/$file\t{params.ins_size}\t$nom" >> {output}
-		done
+		nom=`basename {input}`
+		echo -e "{params.wd}/{input}\t{params.ins_size}\t$nom" >> {output}
 		"""
-
-def get_regions_pindel(wildcards):
-	return wildcards.region_pindel
-#	#if there is a region file, construct region, else get chromosome
-#	if (get_vector(config,"regions")[0] == "TRUE") :
-#		#then construct regions
-#		return widcards.chr+":"+wildcards.beg+"-"+wildcards.end
-#	else:
-#		return wildcards.region_pindel
-#		#else there are no regions file, so get chromosome list
-#		#x=dict_chr.get(str(wildcards.region_pindel))
-#		#return x
-
 
 rule run_pindel:
 	input:
-		config_pindel="results/04_pindel/input_pindel.txt",
-		files=expand("results/02_mapping/bam/{s.sample}.bam", s=SAMPLE.itertuples()),
+		config_pindel="results/04_pindel/input_pindel_{sample}.txt",
+		files="results/02_mapping/bam/{sample}.bam",
 		reference="results/genome/"+REFERENCE+".fasta",
-		index_bam=expand("results/02_mapping/bam/{s.sample}.bam.bai", s=SAMPLE.itertuples()),
+		index_bam="results/02_mapping/bam/{sample}.bam.bai",
 		fai_ref="results/genome/"+REFERENCE+".fasta.fai"
 	output:
-		expand("results/04_pindel/{{region_pindel}}_{ext_pindel}",ext_pindel=["BP","CloseEndMapped","D","INV","LI","RP","SI","TD"]),
+		expand("results/04_pindel/{{sample}}_{ext_pindel}",ext_pindel=["BP","CloseEndMapped","D","INV","LI","RP","SI","TD"]),
 	threads: get_thread
 	resources: mem_mb=get_mem
 	params:
-		wd=WORKDIR,
-		reg=get_regions_pindel
+		wd=WORKDIR
 	conda:
 		"../envs/pindel.yaml"
 	shell:
 		"""
-		pindel -T {threads} -f {input.reference} -i {input.config_pindel} -c {params.reg} -o {params.wd}/results/04_pindel/{params.reg}
-		"""
-
-
-def get_input_gather_pindel(wildcards):
-	list=[]
-	if (get_vector(config,"regions")[0] == "TRUE") :
-		region_p=[]
-		for elm in REGIONS.itertuples():
-			reg=str(elm.chr+":"+elm.beg+"-"+elm.end)
-			region_p.append(reg)
-	else:
-		region_p=list(dict_chr.values())
-	list.extend(expand("results/04_pindel/{region_pindel}_{ext_pindel}",region_pindel=region_p,ext_pindel=["BP","CloseEndMapped","D","INV","LI","RP","SI","TD"]),)
-	print(list)
-	return list
-
-rule gather_pindel:
-	input:
-		get_input_gather_pindel
-		#expand("results/04_pindel/{region_pindel}_{ext_pindel}",region_pindel=list(dict_chr.values()),ext_pindel=["BP","CloseEndMapped","D","INV","LI","RP","SI","TD"]),
-	output:
-		"aggregate_pindel.txt"
-	threads: get_thread
-	resources: mem_mb=get_mem
-	shell:
-		"""
-		for file in {input}
-		do
-			echo $file >> {output}
-		done
+		pindel -T {threads} -f {input.reference} -i {input.config_pindel} -o {params.wd}/results/04_pindel/{wildcards.sample}
 		"""

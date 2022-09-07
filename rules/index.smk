@@ -35,7 +35,7 @@ rule bwa_index_reference:
 		index=expand("results/genome/"+REFERENCE+".fasta.{suffix}",suffix=SUFFIX_BWA),
 		#ref="results/genome/"+REFERENCE+".fasta"
 	conda:
-		"../envs/align.yaml"
+		"../envs/tdnascan.yaml"
 	resources:
 		mem_mb=get_mem
 		#mem_mb=config["ram"]
