@@ -1,9 +1,11 @@
+def get_path_vector(wildcards):
+	return get_vector(config,"vector")[1]
+
 checkpoint cut_vector_file:
 	input:
-		vector=get_vector(config,"vector")[1]
+		vector=get_path_vector
 	output:
 		directory("results/genome/tdnascan/vectors/")
-		#expand("results/genome/tdnascan/vectors/{vector}.fa",vector=LIST_VECTOR)
 	conda:
 		"../envs/tdnascan.yaml"
 	threads: get_thread
@@ -16,6 +18,21 @@ checkpoint cut_vector_file:
 		mkdir -p {params.wk}/results/genome/tdnascan/vectors/
 		faSplit byname {input} {params.wk}/results/genome/tdnascan/vectors/
 		"""
+
+rule copy_tdna:
+	input:
+		vector=get_path_vector
+	output:
+		tdna_seq="results/genome/TDNA_sequence.fasta"
+	threads: get_thread
+	resources: mem_mb=get_mem
+	params:
+		wk=WORKDIR
+	shell:
+		"""
+		cp {input} {params.wk}/{output.tdna_seq}
+		"""
+
 
 rule index_vector:
 	"""
@@ -37,28 +54,13 @@ rule index_vector:
 		bwa index {params.extra} {input.vector}
 		"""
 
-
-#		cd {params.wk}
-#		if [ -d {params.wk}/05_tdnascan/{wildcards.sample}/{wildcards.vector} ]
-#		then
-#			rm -R {params.wk}/05_tdnascan/{wildcards.sample}/{wildcards.vector}
-#		fi
-#		#create output directory in results/05_tdnascan
-#		mkdir -p {params.wk}/results/05_tdnascan/{wildcards.sample}/{wildcards.vector}
-#		#In this dir put a symlink for vector
-#		ln -s {params.wk}/{input.vector} {params.wk}/results/05_tdnascan/{wildcards.sample}/{wildcards.vector}/{wildcards.vector}.fa
-#		#now index this vector in the results/genome directory
-#		bwa index {params.extra} {params.wk}/results/05_tdnascan/{wildcards.sample}/{wildcards.vector}/{wildcards.vector}.fa
-#		# create  symlink to 
-#		"""
-#
-
 rule prepare_reference_tdnascan:
 	"""
 	Prepare symbolic link for reference
 	"""
 	input:
-		ref=get_vector(config,"reference")[1]
+		ref=config["reference"]
+		#ref=get_vector(config,"reference")[1]
 	output:
 		ref="results/genome/tdnascan/reference/"+REF_NAME+".fa",
 		index=expand("results/genome/tdnascan/reference/"+REF_NAME+".fa.{suffix}",suffix=SUFFIX_BWA),	
@@ -105,8 +107,8 @@ rule tdnascan:
 			rm -R {params.wk}/05_tdnascan/{wildcards.sample}/{wildcards.vector}
 		fi
 		mkdir -p results/05_tdnascan/{wildcards.sample}/{wildcards.vector}
-		cd results/05_tdnascan/{wildcards.sample}
 		path_script=`readlink -f {params.install_dir}/script/tdnascan.py`
+		cd results/05_tdnascan/{wildcards.sample}
 		# add argument for install parameters
 		python2.7 $path_script -1 {params.wk}/{input.fq1} -2 {params.wk}/{input.fq2} -t {params.wk}/{input.vector} -g {params.wk}/{input.reference} -p {wildcards.vector} -@ {threads} -i {params.wk}/script -d {params.wk}/results/05_tdnascan/{wildcards.sample} {params.extra}
 		"""
@@ -144,27 +146,32 @@ rule tdnascan_annotate:
 		"../envs/tdnascan.yaml"
 	shell:
 		"""
-		cd results/05_tdnascan/{wildcards.sample}
 		path_script=`readlink -f {params.install_dir}/script/tdnaAnnot.py`
+		cd results/05_tdnascan/{wildcards.sample}
 		python2.7 $path_script -i {params.wd}/{input} -f {params.gff} -o {params.wd}/{output}
 		"""
 
 
 
-def aggregate_vector(wildcards):
-	checkpoint_output=checkpoints.cut_vector_file.get(**wildcards).output[0]
-	#return expand("results/05_tdnascan/{s.sample}/{v}/5.{v}_insertion.bed", s=SAMPLE.itertuples(),v=glob_wildcards(os.path.join(checkpoint_output, "{v}.fa")).v)
- 	return expand("results/05_tdnascan/{s.sample}/{v}/5.{v}_insertion.annotated.new.bed", s=SAMPLE.itertuples(),v=glob_wildcards(os.path.join(checkpoint_output, "{v}.fa")).v)
+#def aggregate_vector(wildcards):
+#	#list=[]
+#	checkpoint_output=checkpoints.cut_vector_file.get(**wildcards).output[0]
+ #	return expand("results/05_tdnascan/{s.sample}/{v}/5.{v}_insertion.annotated.new.bed", s=SAMPLE.itertuples(),v=glob_wildcards(os.path.join(checkpoint_output, "{v}.fa")).v)
+#	#list.extend(expand("results/05_tdnascan/{s.sample}/{v}/5.{v}_insertion.annotated.new.bed", s=SAMPLE.itertuples(),v=glob_wildcards(os.path.join(checkpoint_output, "{v}.fa")).v))
+#	#return list
+#
 
-rule aggregate:
-	input:
-		aggregate_vector
-	output:
-		"aggregate.txt"
-	shell:
-		"""
-		for file in {input}
-		do
-			echo $file >> {output}
-		done
-		"""
+#rule aggregate:
+#	input:
+#		aggregate_vector
+#	output:
+#		"aggregate.txt"
+#	shell:
+#		"""
+#		for file in {input}
+#		do
+#			echo $file >> {output}
+#		done
+#		"""
+#
+#

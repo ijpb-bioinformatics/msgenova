@@ -9,9 +9,32 @@ rule copy_config:
 	threads: get_thread
 	resources:
 		mem_mb=get_mem
+	params:
+		wd=WORKDIR
 	shell:
 		"""
-		cp {params.config}/config_advanced {output}
+		cp {params.config}/config_advanced {params.wd}/{output}
+		"""
+
+def get_regions_file(wildcards):
+	return config["regions"]
+
+rule copy_region:
+	"""
+	If a region file is present, copy region file
+	"""
+	input:
+		get_regions_file
+	output:
+		"results/genome/regions.bed"
+	threads: get_thread
+	resources:
+		mem_mb=get_mem
+	params:
+		wd=WORKDIR
+	shell:
+		"""
+		cp {input} {params.wd}/{output}
 		"""
 
 def get_input_report(wildcards):
@@ -25,10 +48,14 @@ def get_input_report(wildcards):
 	list.append("results/00_logs/config_advanced")
 	list.append("results/03_snv_indels_calling/"+NAME_PROJECT+"_snv_indel.vcf")
 	list.append("results/03_snv_indels_calling/"+NAME_PROJECT+"snpeff.html")
-	if ( get_vector(config,"vector")[1] == "TRUE"):
-		list.extend(aggregate_vector)
+	if get_vector(config,"regions")[0] == "TRUE":
+		list.append("results/genome/regions.bed")
+	if get_vector(config,"vector")[0] == "TRUE":
+		checkpoint_output=checkpoints.cut_vector_file.get(**wildcards).output[0]
+		list.extend(expand("results/05_tdnascan/{s.sample}/{v}/5.{v}_insertion.annotated.new.bed", s=SAMPLE.itertuples(),v=glob_wildcards(os.path.join(checkpoint_output, "{v}.fa")).v))
 		list.extend(expand("results/04_pindel/{s.sample}_{ext_pindel}",s=SAMPLE.itertuples(),ext_pindel=["BP","CloseEndMapped","D","INV","LI","RP","SI","TD"]),)
-	if ( (get_vector(config,"vector")[1] == "FALSE")  & (config["SV"] == "TRUE" )) :
+		list.append("results/genome/TDNA_sequence.fasta")
+	if ( (get_vector(config,"vector")[0] == "FALSE")  & (config["SV"] == "TRUE" )) :
 		list.extend(expand("results/04_pindel/{s.sample}_{ext_pindel}",s=SAMPLE.itertuples(),ext_pindel=["BP","CloseEndMapped","D","INV","LI","RP","SI","TD"]),) 
 	return list
 
@@ -58,13 +85,11 @@ rule report:
 		workdir=config["repo_script"],
 		DP=get_DP,
 		AR=get_AR,
-		#vector=get_vector(config,"vector")[1]
 	conda:
 		"../envs/R.yaml"
 	threads: get_thread
 	resources:
 		mem_mb=get_mem
 	shell:
-		"Rscript -e \"rmarkdown::render('{params.workdir}/script/ms_report.Rmd', output_file = '{params.workdir}/{output}', params = list(result_dir='{params.workdir}/results/',sample='{input.sample_file}', DP.min='{params.DP}', AR.min='{params.AR}'))\""
-		#"Rscript -e \"rmarkdown::render('{params.workdir}/script/ms_report.Rmd', output_file = '{params.workdir}/{output}', params = list(result_dir='{params.workdir}/results/', sample='{input.sample_file}', DP.min='{params.DP}', AR.min='{params.AR}', multiqc='{params.workdir}/{input.multiqc}', vector='{params.vector}', trimmo='{params.workdir}/{input.qc_trimmo}',flagstat='{params.workdir}/{input.flag}',haplotype_caller_vcf='{params.workdir}/{input.haplotype_caller_vcf}'))\""
+		"Rscript -e \"rmarkdown::render('{params.workdir}/script/ms_report.Rmd', output_file = '{params.workdir}/{output}', params = list(result_dir='{params.workdir}/results/', DP.min='{params.DP}', AR.min='{params.AR}'))\""
 

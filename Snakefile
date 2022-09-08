@@ -29,7 +29,7 @@ SAMPLE = pd.read_table(config["sample"], dtype=str,delimiter="\t").set_index(["s
 SUFFIX_BLAST=["ndb","nhr","nin","nog","nos","not","nsq","ntf","nto"]
 
 #create results and logs output directory
-LIST_of_DIR=["results/00_logs/","results/01_sequence_qc/log/","results/02_mapping/log/","tmp"]
+LIST_of_DIR=["results/00_logs/","results/01_sequence_qc/log/","results/02_mapping/log/","tmp","results/06_report/"]
 for dir in LIST_of_DIR:
 	if not (os.path.isdir(dir)):
 		create_logsdir(dir)
@@ -43,8 +43,6 @@ REF_NAME=Path(config["reference"]).stem
 #Define reference variable (in case of concatenation of reference with vector)
 REFERENCE=define_reference(config,"vector")
 
-#vector: "/shared/projects/camelina_pacbio_pipe/msgenove_21/vector.fa"
-
 #if vector
 if get_vector(config,"regions")[0] == "TRUE":
 	print("there is a region file")
@@ -56,7 +54,6 @@ SUFFIX_BWA=["amb","ann","bwt","pac","sa"]
 QC_LIST=["depth","coverage","flagstat"]
 
 LIST_REGION_HAPLOTYPECALLER=[]
-#regions: "/shared/projects/camelina_pacbio_pipe/msgenova/regions.bed"
 
 #Define bool_region for booleen value if there is a region file present
 bool_region = False
@@ -104,5 +101,3 @@ include: "rules/annotate_variant.smk"
 include: "rules/tdnascan.smk"
 include: "rules/pindel.smk"
 include: "rules/report.smk"
-#include: "rules/create_database.smk"
-#include: "rules/blast.smk"

@@ -3,4 +3,4 @@ channels:
  - conda-forge
  - defaults
 dependencies:
- - pindel == 0.2.5b.9
+ - pindel == 0.2.5b9
