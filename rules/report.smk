@@ -4,13 +4,12 @@ rule copy_config:
 	"""
 	output:
 		"results/00_logs/config_advanced"
-	params:
-		config=config["repo_script"]
 	threads: get_thread
 	resources:
 		mem_mb=get_mem
 	params:
-		wd=WORKDIR
+		wd=WORKDIR,
+		config=config["repo_script"]
 	shell:
 		"""
 		cp {params.config}/config_advanced {params.wd}/{output}
