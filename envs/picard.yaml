@@ -1,7 +1,10 @@
 channels:
  - bioconda
+ - conda-forge
  - defaults
 dependencies:
  - picard == 2.27.4
  - samtools == 1.15.1
  - bedtools == 2.30.0
+ - bcftools
+ - tabix == 1.11

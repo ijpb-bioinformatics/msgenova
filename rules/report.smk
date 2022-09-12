@@ -52,10 +52,12 @@ def get_input_report(wildcards):
 	if get_vector(config,"vector")[0] == "TRUE":
 		checkpoint_output=checkpoints.cut_vector_file.get(**wildcards).output[0]
 		list.extend(expand("results/05_tdnascan/{s.sample}/{v}/5.{v}_insertion.annotated.new.bed", s=SAMPLE.itertuples(),v=glob_wildcards(os.path.join(checkpoint_output, "{v}.fa")).v))
-		list.extend(expand("results/04_pindel/{s.sample}_{ext_pindel}",s=SAMPLE.itertuples(),ext_pindel=["BP","CloseEndMapped","D","INV","LI","RP","SI","TD"]),)
+		list.append("results/04_pindel/pindel_results.vcf.gz")
+		#list.extend(expand("results/04_pindel/{s.sample}_{ext_pindel}",s=SAMPLE.itertuples(),ext_pindel=["BP","CloseEndMapped","D","INV","LI","RP","SI","TD"]),)
 		list.append("results/genome/TDNA_sequence.fasta")
 	if ( (get_vector(config,"vector")[0] == "FALSE")  & (config["SV"] == "TRUE" )) :
-		list.extend(expand("results/04_pindel/{s.sample}_{ext_pindel}",s=SAMPLE.itertuples(),ext_pindel=["BP","CloseEndMapped","D","INV","LI","RP","SI","TD"]),) 
+		list.append("results/04_pindel/pindel_results.vcf.gz")
+		#list.extend(expand("results/04_pindel/{s.sample}_{ext_pindel}",s=SAMPLE.itertuples(),ext_pindel=["BP","CloseEndMapped","D","INV","LI","RP","SI","TD"]),) 
 	return list
 
 rule report:
@@ -63,6 +65,7 @@ rule report:
 	Create final report comporting all analysis results
 	"""
 	input:
+		#"results/04_pindel/pindel_results.vcf.gz"
 		get_input_report
 		#multiqc="results/01_sequence_qc/"+NAME_PROJECT+"_multiqc_trim.html",
 		#file_depth=expand("results/02_mapping/depth/{s.sample}.depth",s=SAMPLE.itertuples()),
@@ -82,6 +85,7 @@ rule report:
 		"results/06_report/msgenova_report.html"
 	params:
 		workdir=config["repo_script"],
+		wd=WORKDIR,
 		DP=get_DP,
 		AR=get_AR,
 	conda:
@@ -90,5 +94,5 @@ rule report:
 	resources:
 		mem_mb=get_mem
 	shell:
-		"Rscript -e \"rmarkdown::render('{params.workdir}/script/ms_report.Rmd', output_file = '{params.workdir}/{output}', params = list(result_dir='{params.workdir}/results/', DP.min='{params.DP}', AR.min='{params.AR}'))\""
+		"Rscript -e \"rmarkdown::render('{params.workdir}/script/ms_report.Rmd', output_file = '{params.wd}/{output}', params = list(result_dir='{params.wd}/results/', DP.min='{params.DP}', AR.min='{params.AR}'))\""
 
