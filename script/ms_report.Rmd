@@ -35,7 +35,6 @@ library(DT)
 library(ggplot2)
 library(plyr)
 library(dplyr)
-library(shiny)
 vector_calling<-params$vector
 run_chromomap<-FALSE
 DP.min<-params$DP.min

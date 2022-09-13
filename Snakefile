@@ -16,7 +16,7 @@ from pathlib import Path
 from os.path import exists
 
 ##### set minimum snakemake version #####
-min_version("5.32.0")
+min_version("7.8.1")
 
 ## Define workdir 
 WORKDIR=os.getcwd()
@@ -72,23 +72,11 @@ NAME_PROJECT=transform_project_name(config["project_name"])
 #if get_vector(config,"vector")[0] == "TRUE":
 #	LIST_VECTOR,dict_vector=read_reference(get_vector(config,"vector")[1])
 
-def get_all(wildcards):
-	if get_vector(config,"vector")[0] == "TRUE":
-		LIST_VECTOR,dict_vector=read_reference(get_vector(config,"vector")[1])
-		expand("results/05_tdnascan/{s.sample}/{vector}/5.{vector}_insertion.bed",s=SAMPLE.itertuples(),vector=LIST_VECTOR),
 rule all:
 	input:
-		#expand("results/02_mapping/depth/{s.sample}.depth",s=SAMPLE.itertuples()),
-		#expand("results/02_mapping/coverage/{s.sample}_{reg.chr}:{reg.beg}-{reg.end}.coverage",s=SAMPLE.itertuples(),reg=REGIONS.itertuples()),
-		#expand("results/02_mapping/depth/{s.sample}.depth",s=SAMPLE.itertuples()),
-		#"results/01_sequence_qc/"+NAME_PROJECT+"_multiqc_trim.html",
-		#"results/06_report/msgenova_report.html"
-		#expand("results/05_tdnascan/{s.sample}/5.tdna_insertion.bed",s=SAMPLE.itertuples()),
-		#get_all
 		#"aggregate.txt",
 		#"aggregate_pindel.txt"
 		#"results/01_sequence_qc/log/trimmomatic.log",
-		#expand("results/02_blast/blast_filtered_{s.sample}_concat/all.blast",s=SAMPLE.itertuples()),
 		"results/06_report/msgenova_report.html"
 
 

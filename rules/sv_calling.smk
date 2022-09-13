@@ -84,7 +84,7 @@ rule Genotype_gvcf:
 		ref="results/genome/"+REFERENCE+".fasta",
 		dir="results/03_snv_indels_calling/genomicDB_{regions}/",
 		#db=expand("results/03_snv_indels_calling/genomicDB/{file}",file=["callset.json","vcfheader.vcf","vidmap.json"]),
-		db=expand("results/03_snv_indels_calling/genomicDB_{regions}/{file}",file=["callset.json","vcfheader.vcf","vidmap.json"],regions=LIST_REGION_HAPLOTYPECALLER),
+		db=expand("results/03_snv_indels_calling/genomicDB_{{regions}}/{file}",file=["callset.json","vcfheader.vcf","vidmap.json"]),
 	output:
 		vcf=temp("results/03_snv_indels_calling/variants.{regions}.vcf"),
 		idx=temp("results/03_snv_indels_calling/variants.{regions}.vcf.idx"),

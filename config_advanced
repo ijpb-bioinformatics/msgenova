@@ -69,10 +69,16 @@ params_snpeff_build: ""
 params_snpeff_ann: ""
 
 ############# Parameters for tDNAScan #############
+#parameters for cutting vector file in several fasta using faSplit
+params_cut_vector: ""
+
 #parameters for tDNAScan, tool used to check for plasmid insertion
 # b : length of the library fragment in data (default 500)
 # a windows size of soft clipped reads clustering (default 3)
 params_tdnascan: " -b 450 "
+
+#parameters for tdnascan annotate
+params_tdnascan_annotate: ""
 
 ############# Parameters for Pindel #############
 #parameters for creation of pindel configuration file

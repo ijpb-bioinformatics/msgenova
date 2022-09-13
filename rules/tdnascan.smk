@@ -2,6 +2,9 @@ def get_path_vector(wildcards):
 	return get_vector(config,"vector")[1]
 
 checkpoint cut_vector_file:
+	"""
+	To be able to work vector by vector, cut vector file in several fasta file named after each vector present
+	"""
 	input:
 		vector=get_path_vector
 	output:
@@ -11,12 +14,13 @@ checkpoint cut_vector_file:
 	threads: get_thread
 	resources: mem_mb=get_mem
 	params:
-		wk=WORKDIR
+		wk=WORKDIR,
+		extra=["params_cut_vector"]
 	shell:
 		"""
 		mkdir -p {params.wk}/results/genome/tdnascan/
 		mkdir -p {params.wk}/results/genome/tdnascan/vectors/
-		faSplit byname {input} {params.wk}/results/genome/tdnascan/vectors/
+		faSplit byname {params.extra} {input} {params.wk}/results/genome/tdnascan/vectors/
 		"""
 
 rule copy_tdna:
@@ -64,7 +68,6 @@ rule prepare_reference_tdnascan:
 	output:
 		ref="results/genome/tdnascan/reference/"+REF_NAME+".fa",
 		index=expand("results/genome/tdnascan/reference/"+REF_NAME+".fa.{suffix}",suffix=SUFFIX_BWA),	
-		#"results/05_tdnascan/{wildcards.sample}/{wildcards.vector}/"+REF_NAME+".fa"
 	threads: get_thread
 	resources: mem_mb=get_mem
 	params:
@@ -79,6 +82,9 @@ rule prepare_reference_tdnascan:
 		"""
 
 rule tdnascan:
+	"""
+	Run tdna to be able to identify plsmidic insertions in paired-end data
+	"""
 	input:
 		fq1="results/01_sequence_qc/trimmed.{sample}.R1.fq.gz",
 		fq2="results/01_sequence_qc/trimmed.{sample}.R2.fq.gz",
@@ -114,6 +120,9 @@ rule tdnascan:
 		"""
 
 rule clean_and_delete_tdnascan:
+	"""
+	tdnascan create a lot of intermediary files, clean those
+	"""
 	input:
 		sam="results/05_tdnascan/{sample}/{vector}/1.TDNA.sam",
 		bam1="results/05_tdnascan/{sample}/{vector}/1.TDNA_sort.bam",
@@ -132,6 +141,9 @@ rule clean_and_delete_tdnascan:
 		"""
 
 rule tdnascan_annotate:
+	"""
+	Use tdnascan annotate and annotation file (in gff format) to annotate results
+	"""
 	input:
 		"results/05_tdnascan/{sample}/{vector}/5.{vector}_insertion.reduce.bed"
 	output:
@@ -141,37 +153,13 @@ rule tdnascan_annotate:
 	params:
 		gff=get_vector(config,"gff")[1],
 		install_dir=config["repo_script"],
-		wd=WORKDIR
+		wd=WORKDIR,
+		extra=config["params_tdnascan_annotate"]
 	conda:
 		"../envs/tdnascan.yaml"
 	shell:
 		"""
 		path_script=`readlink -f {params.install_dir}/script/tdnaAnnot.py`
 		cd results/05_tdnascan/{wildcards.sample}
-		python2.7 $path_script -i {params.wd}/{input} -f {params.gff} -o {params.wd}/{output}
+		python2.7 $path_script -i {params.wd}/{input} -f {params.gff} -o {params.wd}/{output} {params.extra}
 		"""
-
-
-
-#def aggregate_vector(wildcards):
-#	#list=[]
-#	checkpoint_output=checkpoints.cut_vector_file.get(**wildcards).output[0]
- #	return expand("results/05_tdnascan/{s.sample}/{v}/5.{v}_insertion.annotated.new.bed", s=SAMPLE.itertuples(),v=glob_wildcards(os.path.join(checkpoint_output, "{v}.fa")).v)
-#	#list.extend(expand("results/05_tdnascan/{s.sample}/{v}/5.{v}_insertion.annotated.new.bed", s=SAMPLE.itertuples(),v=glob_wildcards(os.path.join(checkpoint_output, "{v}.fa")).v))
-#	#return list
-#
-
-#rule aggregate:
-#	input:
-#		aggregate_vector
-#	output:
-#		"aggregate.txt"
-#	shell:
-#		"""
-#		for file in {input}
-#		do
-#			echo $file >> {output}
-#		done
-#		"""
-#
-#
