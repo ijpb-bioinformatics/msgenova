@@ -147,7 +147,7 @@ rule tdnascan_annotate:
 	input:
 		"results/05_tdnascan/{sample}/{vector}/5.{vector}_insertion.reduce.bed"
 	output:
-		"results/05_tdnascan/{sample}/{vector}/5.{vector}_insertion.annotated.new.bed"
+		"results/05_tdnascan/{sample}/{vector}/5.{vector}_insertion.annotated.bed"
 	threads: get_thread
 	resources: mem_mb=get_mem
 	params:

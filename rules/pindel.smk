@@ -74,7 +74,7 @@ rule merge_vcf_files:
 	input:
 		expand("results/04_pindel/{s.sample}.vcf", s=SAMPLE.itertuples()),
 	output:
-		"results/04_pindel/pindel_results.vcf.gz"
+		temp("results/04_pindel/pindel_results.vcf.gz")
 	threads: get_thread
 	resources: mem_mb=get_mem
 	conda:
@@ -118,8 +118,8 @@ rule annotate_pindel_output:
 		vcf="results/04_pindel/pindel_results.vcf.gz",
 		config="results/genome/snpeff.config"
 	output:
-		vcf="results/04_pindel/sv_calling.annotate.vcf.gz",
-		html="results/04_pindel/sv_calling.annotate.html"
+		vcf="results/04_pindel/"+NAME_PROJECT+"_sv.vcf.gz",
+		html="results/04_pindel/"+NAME_PROJECT+"_sv.html"
 	params:
 		ref_name=REFERENCE,
 		extra=config["params_snpeff_ann"]

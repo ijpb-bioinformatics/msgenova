@@ -17,17 +17,11 @@ params:
   AR.min: AR.min
   result_dir: result_dir
   rmd: "report.Rmd"
-  sample: sample
-  trimmo: trimmo
-  multiqc: multiqc
-  vector: vector
-  flagstat: flagstat
-  haplotype_caller: haplotype_caller_vcf
 ---
 
 ```{r setup, include=FALSE}
-workspace<-params$result_dir
-knitr::opts_chunk$set(echo = TRUE,root.dir=workspace)
+workspace<-"/home/gabriele.adam/Documents/Msgenova/sorties_report/results"
+knitr::opts_chunk$set(root.dir=workspace, echo = FALSE , warning=FALSE, error=FALSE, message=FALSE)
 ```
 
 ```{r load_library, echo=FALSE, warning=FALSE, error=FALSE}
@@ -38,17 +32,17 @@ library(plyr)
 library(dplyr)
 library(yaml)
 vector_calling<-params$vector
-run_chromomap<-FALSE
 
-DP.min<-params$DP.min
-AR.min<-params$AR.min
-#workspace<-params$result_dir
+DP.min<-5
+AR.min<-0.2
 
 sheet<-params$sample
 trimmo<- params$trimmo
 flagstat<- params$flagstat
 haplotype_caller<- params$haplotype_caller
-#setwd(workspace)
+
+config_advanced_file<-paste0(workspace,"/00_logs/config_advanced")
+config_ad<-read_yaml(config_advanced_file)
 ```
 
 ```{r define_function}
@@ -113,14 +107,16 @@ for (spl in sample){
     }
   }
 }
-return(final_table)
+if (exists("final_table")){
+return(final_table)}
+else{return(table)}
 }
 ```
 
 `r ifelse(vector_calling,"# Study Plasmidic insertion","")`
 
 ```{r define_variable}
-pathway=paste0(workspace,"/05_tdnascan/")
+pathway=paste0(workspace,"/05_tdnascan")
 sample<-list.files(pathway)
 print(sample)
 vector<-list.files(paste0(pathway,"/",sample[1]))
@@ -132,13 +128,18 @@ sample_sheet<-read.table(paste0(workspace,"/genome/sample_sheet"),sep="\t",heade
 ```{r read_input}
 final_tab<-read_file(pathway)
 DT::datatable(final_tab)
+if(nrow(final_tab) >0){
 final_tab2<- final_tab %>% separate(col=TDNA_info,sep=",",into=c("tdna_st","tdna_end"))  %>% mutate(tdna_st=str_replace(tdna_st,"tdna_st:","")) %>% mutate(tdna_end=str_replace(tdna_end,"tdna_end:","")) %>% mutate(tdna_st=str_replace(tdna_st,"-","0")) %>% mutate(tdna_end=str_replace(tdna_end,"-","0")) %>% mutate(tdna_st=as.numeric(as.character(tdna_st))) %>% mutate(tdna_end=as.numeric(as.character(tdna_end))) %>% mutate(length_break=abs(tdna_end - tdna_st)) %>% mutate(breakpoint_end=Breakpoint+length_break) %>% mutate(name=paste(Chr,Breakpoint,vector,sample,sep="-"))  %>% select(name,Chr,Breakpoint,breakpoint_end,vector,sample)
 DT::datatable(final_tab2)
+presence_of_insertion<-TRUE
+}else{
+  presence_of_insertion<-FALSE
+}
 ```
 
-## By vector, how many insertions are there by chromosome ?{.tabset .tabset-fade}
+`r ifelse(presence_of_insertion,"## By vector, how many insertions are there by chromosome ?{.tabset .tabset-fade}","")`
 
-```{r barplot_snp, results='asis'}
+```{r barplot_snp, results='asis',eval=presence_of_insertion}
 #For one vector, look if it insert at the same position for several sample with a threshold for space between position
 for (v in vector){
   sub_table<-filter(final_tab,vector==v) %>% group_by(Chr,sample) %>% dplyr::count(name="nbr_inster_by_chr")
@@ -146,37 +147,22 @@ for (v in vector){
   #count_tab<- count(sub_table,Chr)
   if(nrow(sub_table)> 0){
     cat("###",v,"\n")
-  g<- ggplot(sub_table,aes(x=Chr,y=nbr_inster_by_chr,fill=sample))+geom_bar(stat="identity")+xlab("Numbre of insertion by chromosome")+ylab("Chromosome")+ggtitle(paste0("Number of in sertion of vector ",v," by chromosome"))+theme_bw()
+  g<- ggplot(sub_table,aes(x=Chr,y=nbr_inster_by_chr,fill=sample))+geom_bar(stat="identity",position=position_dodge())+ylab("Numbre of insertion by chromosome")+xlab("Chromosome")+ggtitle(paste0("Number of in sertion of vector ",v," by chromosome"))+theme_bw()
   print(g)
   }
   cat('\n\n')
 }
 ```
 
-## What are the size between the insertion
-
-```{r length_between_insertion}
-list_of_size<- freq_length_bewteen_insertion(final_tab)
-#size<-as.data.frame(list_of_size,rep("insertion",times=length(list_of_size)))
-#ggplot(size,aes(x=list_of_size))+geom_density()+xlim(min(list_of_size),max(list_of_size))
-size<-as.data.frame(count(list_of_size))
-ggplot(size,aes(x=x,y=freq))+geom_point()+ylim(0,(max(size$freq)+1))
-ggplot(size,aes(x=factor(x)))+geom_bar(stat = "count")
-```
-
-## Are there the same vector insertion for several sample - New version ?
-```{r essai_shiny}
-#list_size<-freq_length_bewteen_insertion(final_tab)
-#cts<-count(list_size)
-#print(cts)
-#final_tab<-read_file("/home/gabriele.adam/Documents/Msgenova/sortie_msgenova/05_tdnascan/data")
+# Does several samples have the same insertions ?
+```{r same_insertions, eval=presence_of_insertion}
 essai<-search_identical_insertion(final_tab,5000)
 DT::datatable(essai)
 ```
 
-`r ifelse(vector_calling,"# how many samples have insertion of which vector and which do not have any - version barplot?","")`
+`r ifelse(vector_calling,"# Barplot representation of the insertions in each sample","")`
 
-```{r plot_by_chr_tuto, eval=TRUE, echo = TRUE}
+```{r plot_by_chr_tuto, eval=presence_of_insertion, echo = presence_of_insertion}
 #Establish list of sample without any insertion
 no_insertion<-c()
 #gff3<-"~/Documents/Msgenova/ref_arabido/Ath-Col0-tair10-WG/Arabidopsis_thaliana.TAIR10.41.gff3"
@@ -202,37 +188,18 @@ for (spl in unique(final_tab$sample)){
   #print(bp)
   }
 }
+```
+
+```{r no_insertions, eval=presence_of_insertion}
 print("List of vector without any plasmid insertion")
 print(no_insertion)
 
 ```
 
-`r ifelse(run_chromomap,"#how many samples have insertion of which vector and which do not have any - version chromoMap","")`
-
-```{r chromomap , eval =run_chromomap, echo=run_chromomap}
-library(chromoMap)
-path<-"/home/gabriele.adam/Documents/Msgenova/sortie_msgenova/chromomap/"
-chr<-paste0(path,"chr_size")
-annotation<-paste0(path,"annotation.tsv")
-for (spl in unique(final_tab$sample)){
-  sub_table<-dplyr::filter(final_tab,sample==spl)
-  if(nrow(sub_table)==0){
-    print("yes")
-    no_insertion<-append(no_insertion,spl)
-  }else{
- bp<- barplot(table_size_chr$Size,border=NA,names.arg = table_size_chr$Chr,main=paste0("Barplot showing plasmidic insertion on sample ",spl))
- rownames(bp)<-table_size_chr$Chr
-  with(sub_table,segments(bp[sub_table$Chr,]-0.5,sub_table$Breakpoint,bp[sub_table$Chr,]+0.5),sub_table$Breakpoint,col=sub_table$vector)
-  }}
-chromoMap(chr,annotation)
-sub_table<-dplyr::filter(final_tab,sample==spl) %>% separate(col=TDNA_info,sep=",",into=c("tdna_st","tdna_end"))  %>% mutate(tdna_st=str_replace(tdna_st,"tdna_st:","")) %>% mutate(tdna_end=str_replace(tdna_end,"tdna_end:","")) %>% mutate(tdna_st=str_replace(tdna_st,"-","0")) %>% mutate(tdna_end=str_replace(tdna_end,"-","0")) %>% mutate(tdna_st=as.numeric(as.character(tdna_st))) %>% mutate(tdna_end=as.numeric(as.character(tdna_end))) %>% mutate(length_break=abs(tdna_end - tdna_st)) %>% mutate(breakpoint_end=Breakpoint+length_break) %>% mutate(name=paste(Chr,Breakpoint,vector,sample,sep="-"))  %>% select(name,Chr,Breakpoint,breakpoint_end,vector)
-write.table(sub_table,file=paste0(path,"annot2.tsv"),sep="\t",row.names = FALSE)
-chromoMap(chr,paste0(path,"annot2.tsv"))
-```
-
 ## Trimming parameters
 
 ```{r trimmomatic}
+trimmo<-paste0(workspace,"/01_sequence_qc/log/trimmomatic.log")
 dat<-read.table(text=gsub(" ","\t",readLines(trimmo)),  header=TRUE)
 DT::datatable(dat)
 ```
@@ -243,7 +210,7 @@ DT::datatable(dat)
 
 ```{r flagstat}
 library(tidyverse)
-file <- flagstat
+file <- paste0(workspace,"/02_mapping/flagstat/concatenate_flagstat.txt")
 if(file.exists(file)){
     flagstat <- read.table(file, sep="\t", header=FALSE) %>% 
       dplyr::mutate(mapped=V3-V4, unmapped=V2-V3, supplementary=V4, 
@@ -273,7 +240,7 @@ ggplot(data = ratio.reads.melt) + geom_boxplot(aes(y=ratio, x=x.label)) + xlab("
 ### Coverage analysis
 ```{r coverage}
 cov.list <- lapply(sample_sheet$sample, function(x){
-  file <- paste0(workspace,"/03_mapping/coverage/", x, ".coverage")
+  file <- paste0(workspace,"/02_mapping/coverage/", x, ".coverage")
   if(file.exists(file)){
     
     read.table(file, sep="\t") %>%  dplyr::filter(V4 > 1)  %>% dplyr::mutate(sample = x)
@@ -293,23 +260,23 @@ cat('\n\n')
 }
 ```
 
-#### Depth analysis
+### Depth analysis
 ```{r depth_analysis}
 cov.list <- lapply(sample_sheet$sample, function(x){
 
-  file <- paste0(workspace,"/03_mapping/depth/", x, ".depth")
+  file <- paste0(workspace,"/02_mapping/depth/", x, ".depth")
   if(file.exists(file)){
     read.table(file, sep="\t")  %>% dplyr::mutate(plant = x)
   }
 })
 
 depth <- purrr::reduce(cov.list, rbind)
-colnames(depth) <- c("rname", "position", "depth", "plant")
+colnames(depth) <- c("rname", "position", "depth", "sample")
 #depth <- depth %>% left_join(bed.tab, by="rname")  %>% filter(position >=start, position <= stop)
 heading<-as.character(unique(sample_sheet$sample))
 for (i in unique(cov$rname)){
  cat("####",i,"\n")
-  p <- ggplot(data = filter(depth,rname== i)) + geom_line(aes(x=position, y=depth, color=plant))   + theme(legend.position="none", axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ylab("Depth of coverage")+facet_grid(~rname, scales = "free") 
+  p <- ggplot(data = filter(depth,rname== i)) + geom_line(aes(x=position, y=depth, color=sample))   + theme(legend.position="none", axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ylab("Depth of coverage")+facet_grid(~rname, scales = "free") 
   print(p)
 cat('\n\n')
 }
@@ -379,6 +346,7 @@ vcfR_split_multiAlt <- function(vcfR.tid, nbrAlt=NULL){
 ```
 
 ```{r , echo=FALSE, warning=FALSE, error=FALSE}
+haplotype_caller<-paste0(workspace,"/03_snv_indels_calling/",config_ad$project_name,"_snv_indel.vcf")
 vcfR.inst <- vcfR::read.vcfR(haplotype_caller)
 
 vcfR.tid.list <- vcfR::vcfR2tidy(vcfR.inst)
