@@ -26,7 +26,8 @@ params:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+workspace<-params$result_dir
+knitr::opts_chunk$set(echo = TRUE,root.dir=workspace)
 ```
 
 ```{r load_library, echo=FALSE, warning=FALSE, error=FALSE}
@@ -35,16 +36,19 @@ library(DT)
 library(ggplot2)
 library(plyr)
 library(dplyr)
+library(yaml)
 vector_calling<-params$vector
 run_chromomap<-FALSE
+
 DP.min<-params$DP.min
 AR.min<-params$AR.min
-workspace<-params$result_dir
-sample_sheet<-params$sample
+#workspace<-params$result_dir
+
+sheet<-params$sample
 trimmo<- params$trimmo
 flagstat<- params$flagstat
 haplotype_caller<- params$haplotype_caller
-setwd(workspace)
+#setwd(workspace)
 ```
 
 ```{r define_function}
@@ -89,8 +93,6 @@ freq_length_bewteen_insertion<-function(final_table){
 }
 
 read_file<-function(pathway){
-#sample<-list.files(getwd())
-#vector<-list.files(list.files(getwd())[1])
 sample<-list.files(pathway)
 vector<-list.files(paste0(pathway,"/",sample[1]))
 i=0
@@ -118,13 +120,13 @@ return(final_table)
 `r ifelse(vector_calling,"# Study Plasmidic insertion","")`
 
 ```{r define_variable}
-#sample<-list.files(getwd())
-#vector<-list.files(list.files(getwd())[1])
 pathway=paste0(workspace,"/05_tdnascan/")
 sample<-list.files(pathway)
+print(sample)
 vector<-list.files(paste0(pathway,"/",sample[1]))
+print(vector)
 # read sample file
-sample_sheet<-read.table(sample_sheet,sep="\t",header=TRUE)
+sample_sheet<-read.table(paste0(workspace,"/genome/sample_sheet"),sep="\t",header=TRUE)
 ```
 
 ```{r read_input}

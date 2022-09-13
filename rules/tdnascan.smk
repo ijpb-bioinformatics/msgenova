@@ -15,12 +15,12 @@ checkpoint cut_vector_file:
 	resources: mem_mb=get_mem
 	params:
 		wk=WORKDIR,
-		extra=["params_cut_vector"]
+		extra=config["params_cut_vector"]
 	shell:
 		"""
 		mkdir -p {params.wk}/results/genome/tdnascan/
 		mkdir -p {params.wk}/results/genome/tdnascan/vectors/
-		faSplit byname {params.extra} {input} {params.wk}/results/genome/tdnascan/vectors/
+		faSplit byname {input} {params.wk}/results/genome/tdnascan/vectors/ {params.extra}
 		"""
 
 rule copy_tdna:
