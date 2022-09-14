@@ -20,7 +20,7 @@ params:
 ---
 
 ```{r setup, include=FALSE}
-workspace<-"/home/gabriele.adam/Documents/Msgenova/sorties_report/results"
+workspace<-params$result_dir
 knitr::opts_chunk$set(root.dir=workspace, echo = FALSE , warning=FALSE, error=FALSE, message=FALSE)
 ```
 

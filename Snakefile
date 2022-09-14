@@ -14,6 +14,7 @@ import itertools
 import subprocess
 from pathlib import Path
 from os.path import exists
+import yaml
 
 ##### set minimum snakemake version #####
 min_version("7.8.1")

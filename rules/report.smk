@@ -60,7 +60,7 @@ rule copy_sample_file:
 		cp {input} {params.wd}/{output}
 		"""
 
-rule concatene_flagstat:
+rule extract_flagstat:
 	"""
 	Concatenate flagstat output to simplify report
 	"""
