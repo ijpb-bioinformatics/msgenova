@@ -5,7 +5,7 @@ rule create_input_pindel:
 	input:
 		"results/02_mapping/bam/{sample}.bam"
 	output:
-		"results/04_pindel/input_pindel_{sample}.txt"
+		temp("results/04_pindel/input_pindel_{sample}.txt")
 	params:
 		wd=WORKDIR,
 		ins_size=get_size_insert
@@ -32,7 +32,7 @@ rule run_pindel:
 		index_bam="results/02_mapping/bam/{sample}.bam.bai",
 		fai_ref="results/genome/"+REFERENCE+".fasta.fai"
 	output:
-		expand("results/04_pindel/{{sample}}_{ext_pindel}",ext_pindel=["BP","CloseEndMapped","D","INV","LI","RP","SI","TD"]),
+		temp(expand("results/04_pindel/{{sample}}_{ext_pindel}",ext_pindel=["BP","D","INV","LI","SI","TD","INT_final","CloseEndMapped","RP"]),)
 	threads: get_thread
 	resources: mem_mb=get_mem
 	params:
@@ -108,6 +108,11 @@ rule merge_vcf_files:
 		else
 			bcftools merge -m none -Oz {params.extra} -o {output} $list
 		fi
+		for file in {input}
+		do
+			rm {params.wd}/$file.gz
+			{params.wd}/$file.gz.tbi
+		done
 		"""
 
 rule annotate_pindel_output:
