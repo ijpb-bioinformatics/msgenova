@@ -62,6 +62,6 @@ rule annotate_variant:
 	threads: get_thread
 	shell:
 		"""
-		snpEff eff -c {input.config} {params.extra} -dataDir . {params.ref_name} -s {output.html} {input.vcf} > {output.vcf}
+		snpEff -Xmx{resources.mem_mb} eff -c {input.config} {params.extra} -dataDir . {params.ref_name} -s {output.html} {input.vcf} > {output.vcf}
 		"""
 
