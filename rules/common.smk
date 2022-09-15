@@ -14,25 +14,28 @@ def create_logsdir(path):
 		logger.info("Successfully created the directory %s " % path)
 
 #define function to get threads from config file or set defaults value
-def get_thread(wildcards):
-	try:
-		value=config["cpu"]
-		return int(config["cpu"])
-	except:
-		return int("16")	
+def get_thread(rule):
+	List_of_rules=["sort_sam","mark_duplicate","build_snpeff_db","annotate_variant","deal_with_vector","bwa_index_reference","create_dict_reference","samtools_index_reference","create_input_pindel","merge_vcf_files","annotate_pindel_output","multiqc","trimmed_fqc2","trimmed_fqc1","concatenate_log_trimmomatic","flagstat","samtools_coverage_by_regions","samtools_coverage","samtools_coverage_final","samtools_depth","copy_config","copy_region","copy_sample_file","extract_flagstat","report","HaplotypeCaller","GenomicsDB","Genotype_gvcf","gatherVCF","cut_vector_file","copy_tdna","index_vector","prepare_reference_tdnascan","clean_and_delete_tdnascan"]
+	if rule in List_of_rules:
+		return int("1")
+	else:
+		try:
+			value=config["cpu"]
+			return int(config["cpu"])
+		except:
+			return int("16")	
+
 #return int(config["cpu"])
 
-def get_mem(wildcards):
-	if get_vector(config,"ram")[0] == "TRUE":
-		return str(get_vector(config,"ram")[1])
+def get_mem(rule):
+	List_of_rules=["build_snpeff_db","deal_with_vector","create_input_pindel","merge_vcf_files","multiqc","trimming","trimmed_fqc2","trimmed_fqc1","concatenate_log_trimmomatic","flagstat","samtools_coverage_by_regions","samtools_coverage","samtools_coverage_final","samtools_depth","copy_config","copy_region","copy_sample_file","extract_flagstat","report","cut_vector_file","copy_tdna","index_vector","prepare_reference_tdnascan","clean_and_delete_tdnascan"]
+	if rule in List_of_rules:
+		return str("2G")
 	else:
-		return "40G"
-#	try:
-#		value=config["ram"]
-#		return config["ram"]
-#	except:
-#		return "30G"
-#
+		if get_vector(config,"ram")[0] == "TRUE":
+			return str(get_vector(config,"ram")[1])
+		else:
+			return "40G"
 
 def get_size_insert(wildcards):
 	try:

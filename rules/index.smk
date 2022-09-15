@@ -9,9 +9,9 @@ rule deal_with_vector:
 	params:
 		vector=get_vector(config,"vector")[0],
 		field=get_vector(config,"vector")[1]
-	threads: get_thread
+	threads: get_thread("deal_with_vector")
 	resources:
-		mem_mb=get_mem
+		mem_mb=get_mem("deal_with_vector")
 	shell:
 		"""
 		val_bool={params.vector}
@@ -29,17 +29,13 @@ rule bwa_index_reference:
 	"""
 	input:
 		ref="results/genome/"+REFERENCE+".fasta"
-		#ref=get_reference
-		#ref=config["reference"]
 	output:
 		index=expand("results/genome/"+REFERENCE+".fasta.{suffix}",suffix=SUFFIX_BWA),
-		#ref="results/genome/"+REFERENCE+".fasta"
 	conda:
 		"../envs/tdnascan.yaml"
 	resources:
-		mem_mb=get_mem
-		#mem_mb=config["ram"]
-	threads: get_thread
+		mem_mb=get_mem("bwa_index_reference")
+	threads: get_thread("bwa_index_reference")
 	params:
 		extra=config["params_bwa_index_reference"]
 	shell:
@@ -57,9 +53,9 @@ rule create_dict_reference:
 		ref="results/genome/"+REFERENCE+".dict"
 	conda:
 		"../envs/picard.yaml"
-	threads: get_thread
+	threads: get_thread("create_dict_reference")
 	resources:
-		mem_mb=get_mem
+		mem_mb=get_mem("create_dict_reference")
 	params:
 		extra=config["params_create_dict_reference"]
 	shell:
@@ -74,9 +70,9 @@ rule samtools_index_reference:
 		ref="results/genome/"+REFERENCE+".fasta.fai"
 	conda:
 		"../envs/picard.yaml"
-	threads: get_thread
+	threads: get_thread("samtools_index_reference")
 	resources:
-		mem_mb=get_mem
+		mem_mb=get_mem("samtools_index_reference")
 	params:
 		extra=config["params_index_reference_samtools"]
 	shell:
@@ -95,9 +91,9 @@ rule index_alignment_file:
 		bai="results/02_mapping/bam/{sample}.bam.bai"
 	conda:
 		"../envs/picard.yaml"
-	threads: get_thread
+	threads: get_thread("index_alignment_file")
 	resources:
-		mem_mb=get_mem
+		mem_mb=get_mem("index_alignment_file")
 	params:
 		extra=config["params_index_alignment"]
 	shell:

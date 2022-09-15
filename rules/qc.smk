@@ -3,9 +3,9 @@ rule multiqc:
 		expand("results/01_sequence_qc/trimmed.{s.sample}.{R}_fastqc.{ext}",ext=["zip"],R=["R1","R2"],s=SAMPLE.itertuples()),
 	output:
 		"results/01_sequence_qc/"+NAME_PROJECT+"_multiqc_trim.html"
-	threads: get_thread
+	threads: get_thread("multiqc")
 	resources:
-		mem_mb=get_mem
+		mem_mb=get_mem("multiqc")
 	params:
 		extra=config["params_multiqc"]
 	conda:
@@ -15,25 +15,6 @@ rule multiqc:
 		directory=`dirname {input[0]}`
 		directory_res=`dirname {output}`
 		multiqc --force -n {output} {input}
-		"""
-
-rule fqc_essai2:
-	input:
-		"/save/project/ijpb/bioinfo-data/raw-data/SOJ/fastq/JAP3-jmj14-4_TAATGCGC-AGGCTATA_L007_R2.fastq.gz"
-	output:
-		html="qc/JAP3-jmj14-4_TAATGCGC-AGGCTATA_L007_R2_fastqc.html",
-		zip="qc/JAP3-jmj14-4_TAATGCGC-AGGCTATA_L007_R2_fastqc.zip"
-	params: " --quiet"
-	threads: get_thread
-	message: "Do fqc2"
-	log:
-		"log/essai_log_file.log"
-	resources:
-		mem_mb=get_mem
-	shell:
-		"""
-		echo "$(date '+%Y%m%d %r') [$(basename $0): QC & Trimming] Starting Sequence Quality Control and Trimming Process..." | tee -a {log} 2>&1
-		fastqc {params} -t {threads} --outdir /work/gadam/Mudetect/qc {input}  
 		"""
 
 rule trimming:
@@ -50,9 +31,9 @@ rule trimming:
 		trimmer=["TRAILING:3"],
 		extra=config["params_trimmomatic"],
 		compression_level="-9"
-	threads: get_thread
+	threads: get_thread("trimming")
 	resources:
-		mem_mb=get_mem
+		mem_mb=get_mem("trimming")
 	conda:
 		"../envs/qc.yaml"
 	shell:
@@ -67,9 +48,9 @@ rule trimmed_fqc2:
 	output:
 		html="results/01_sequence_qc/trimmed.{sample}.R2_fastqc.html",
 		zip="results/01_sequence_qc/trimmed.{sample}.R2_fastqc.zip"
-	threads: get_thread
+	threads: get_thread("trimmed_fqc2")
 	resources:
-		mem_mb=get_mem
+		mem_mb=get_mem("trimmed_fqc2")
 	conda:
 		"../envs/qc.yaml"
 	params:
@@ -85,8 +66,8 @@ rule trimmed_fqc1:
 	output:
 		html="results/01_sequence_qc/trimmed.{sample}.R1_fastqc.html",
 		zip="results/01_sequence_qc/trimmed.{sample}.R1_fastqc.zip"
-	threads: get_thread
-	resources: mem_mb=get_mem
+	threads: get_thread("trimmed_fqc1")
+	resources: mem_mb=get_mem("trimmed_fqc1")
 	conda:
 		"../envs/qc.yaml"
 	params:
@@ -101,8 +82,8 @@ rule concatenate_log_trimmomatic:
 		expand("results/01_sequence_qc/log/{s.sample}.trimmomatic.log", s=SAMPLE.itertuples()),
 	output:
 		"results/01_sequence_qc/log/trimmomatic.log"
-	threads: get_thread
-	resources: mem_mb=get_mem
+	threads: get_thread("concatenate_log_trimmomatic")
+	resources: mem_mb=get_mem("concatenate_log_trimmomatic")
 	params:
 		wd=WORKDIR
 	shell:

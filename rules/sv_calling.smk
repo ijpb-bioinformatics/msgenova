@@ -29,14 +29,14 @@ rule HaplotyCaller:
 		idx=temp("results/03_snv_indels_calling/{sample}.{regions}.g.vcf.idx")
 	conda:
 		"../envs/gatk4.yaml"
-	threads: get_thread
+	threads: get_thread("HaplotyCaller")
 	params:
 		extra=config["params_haplotype_caller"],
 		#regions= lambda wildcards,output: get_region(wildcards)
 		#region=dict_chr.get(wildcards.regions)
 		regions=get_region
 	resources:
-		mem_mb=get_mem
+		mem_mb=get_mem("HaplotyCaller")
 	shell:
 		"""
 		 gatk --java-options -Xmx{resources.mem_mb} HaplotypeCaller -R {input.ref} -I {input.bam} -O {output.vcf} -L {params.regions} --native-pair-hmm-threads {threads} {params.extra}
@@ -56,12 +56,11 @@ rule GenomicsDB:
 		vidmap="results/03_snv_indels_calling/genomicDB_{regions}/vidmap.json"
 	params:
 		region=get_region,
-		#region=get_region_genomicdb,
 		extra=config["params_genomics_db"]
 	conda:
 		"../envs/gatk4.yaml"
-	threads: get_thread
-	resources: mem_mb=get_mem
+	threads: get_thread("GenomicsDB")
+	resources: mem_mb=get_mem("GenomicsDB")
 	shell:
 		"""
 		if [ -d {output.dir} ]
@@ -90,8 +89,8 @@ rule Genotype_gvcf:
 		idx=temp("results/03_snv_indels_calling/variants.{regions}.vcf.idx"),
 	conda:
 		"../envs/gatk4.yaml"
-	resources: mem_mb=get_mem
-	threads: get_thread
+	resources: mem_mb=get_mem("Genotype_gvcf")
+	threads: get_thread("Genotype_gvcf")
 	params:
 		extra=config["params_genotype_gvcf"]
 	shell:
@@ -115,8 +114,8 @@ rule gatherVCF:
 		temp("results/03_snv_indels_calling/variants.merged.vcf")
 	conda:
 		"../envs/picard.yaml"
-	resources: mem_mb=get_mem
-	threads: get_thread
+	resources: mem_mb=get_mem("gatherVCF")
+	threads: get_thread("gatherVCF")
 	params:
 		extra=config["params_gathervcf"]
 	shell:

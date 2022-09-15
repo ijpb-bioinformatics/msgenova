@@ -16,8 +16,8 @@ rule build_snpeff_db:
 	conda:
 		"../envs/snpeff.yaml"
 	resources:
-		mem_mb=get_mem
-	threads: get_thread	
+		mem_mb=get_mem("build_snpeff_db")
+	threads: get_thread("build_snpeff_db")	
 	shell:
 		"""
 		echo {params.ref_name}.genome > {output.config}
@@ -58,8 +58,8 @@ rule annotate_variant:
 	conda:
 		"../envs/snpeff.yaml"
 	resources:
-		mem_mb=get_mem
-	threads: get_thread
+		mem_mb=get_mem("annotate_variant")
+	threads: get_thread("annotate_variant")
 	shell:
 		"""
 		snpEff -Xmx{resources.mem_mb} eff -c {input.config} {params.extra} -dataDir . {params.ref_name} -s {output.html} {input.vcf} > {output.vcf}

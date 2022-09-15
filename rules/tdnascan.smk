@@ -11,8 +11,8 @@ checkpoint cut_vector_file:
 		directory("results/genome/tdnascan/vectors/")
 	conda:
 		"../envs/tdnascan.yaml"
-	threads: get_thread
-	resources: mem_mb=get_mem
+	threads: get_thread("cut_vector_file")
+	resources: mem_mb=get_mem("cut_vector_file")
 	params:
 		wk=WORKDIR,
 		extra=config["params_cut_vector"]
@@ -28,8 +28,8 @@ rule copy_tdna:
 		vector=get_path_vector
 	output:
 		tdna_seq="results/genome/TDNA_sequence.fasta"
-	threads: get_thread
-	resources: mem_mb=get_mem
+	threads: get_thread("copy_tdna")
+	resources: mem_mb=get_mem("copy_tdna")
 	params:
 		wk=WORKDIR
 	shell:
@@ -46,8 +46,8 @@ rule index_vector:
 		vector="results/genome/tdnascan/vectors/{vector}.fa"
 	output:
 		index=expand("results/genome/tdnascan/vectors/{{vector}}.fa.{suffix}",suffix=SUFFIX_BWA),
-	threads: get_thread
-	resources: mem_mb=get_mem
+	threads: get_thread("index_vector")
+	resources: mem_mb=get_mem("index_vector")
 	conda:
 		"../envs/tdnascan.yaml"
 	params:
@@ -68,8 +68,8 @@ rule prepare_reference_tdnascan:
 	output:
 		ref="results/genome/tdnascan/reference/"+REF_NAME+".fa",
 		index=expand("results/genome/tdnascan/reference/"+REF_NAME+".fa.{suffix}",suffix=SUFFIX_BWA),	
-	threads: get_thread
-	resources: mem_mb=get_mem
+	threads: get_thread("prepare_reference_tdnascan")
+	resources: mem_mb=get_mem("prepare_reference_tdnascan")
 	params:
 		wk=WORKDIR,
 		extra=config["params_bwa_index_reference"]
@@ -101,8 +101,8 @@ rule tdnascan:
 		install_dir=config["repo_script"],
 		wk=WORKDIR,
 		extra=config["params_tdnascan"]
-	threads: get_thread
-	resources: mem_mb=get_mem
+	threads: get_thread("tdnascan")
+	resources: mem_mb=get_mem("tdnascan")
 	conda:
 		"../envs/tdnascan.yaml"
 	shell:
@@ -130,8 +130,8 @@ rule clean_and_delete_tdnascan:
 		bed="results/05_tdnascan/{sample}/{vector}/5.{vector}_insertion.bed"
 	output:
 		"results/05_tdnascan/{sample}/{vector}/5.{vector}_insertion.reduce.bed"
-	threads: get_thread
-	resources: mem_mb=get_mem
+	threads: get_thread("clean_and_delete_tdnascan")
+	resources: mem_mb=get_mem("clean_and_delete_tdnascan")
 	params:
 		wd=WORKDIR
 	shell:
@@ -148,8 +148,8 @@ rule tdnascan_annotate:
 		"results/05_tdnascan/{sample}/{vector}/5.{vector}_insertion.reduce.bed"
 	output:
 		"results/05_tdnascan/{sample}/{vector}/5.{vector}_insertion.annotated.bed"
-	threads: get_thread
-	resources: mem_mb=get_mem
+	threads: get_thread("tdnascan_annotate")
+	resources: mem_mb=get_mem("tdnascan_annotate")
 	params:
 		gff=get_vector(config,"gff")[1],
 		install_dir=config["repo_script"],

@@ -5,9 +5,9 @@ rule flagstat:
 		"results/02_mapping/flagstat/{sample}.flagstat"
 	conda:
 		"../envs/picard.yaml"
-	threads: get_thread
+	threads: get_thread("flagstat")
 	resources:
-		mem_mb=get_mem
+		mem_mb=get_mem("flagstat")
 	params:
 		extra=config["params_flagstat"]
 	shell:
@@ -21,8 +21,8 @@ rule samtools_coverage_by_regions:
 		bai="results/02_mapping/bam/{sample}.bam.bai"
 	output:
 		"results/02_mapping/coverage/{sample}_{chr}:{beg}-{end}.coverage"
-	threads: get_thread
-	resources: mem_mb=get_mem
+	threads: get_thread("samtools_coverage_by_regions")
+	resources: mem_mb=get_mem("samtools_coverage_by_regions")
 	params:
 		extra=config["params_samtools_coverage"]
 	conda:
@@ -51,9 +51,9 @@ rule samtools_coverage:
 		"results/02_mapping/coverage/{sample}.temp.coverage"
 	conda:
 		"../envs/picard.yaml"
-	threads: get_thread
+	threads: get_thread("samtools_coverage")
 	resources:
-		mem_mb=get_mem
+		mem_mb=get_mem("samtools_coverage")
 	params:
 		extra=config["params_samtools_coverage"],
 		bool=get_vector(config,"regions")[0],
@@ -68,8 +68,8 @@ rule samtools_coverage_final:
 		get_input_samtools_coverage
 	output:
 		"results/02_mapping/coverage/{sample}.coverage"
-	threads: get_thread
-	resources: mem_mb=get_mem
+	threads: get_thread("samtools_coverage_final")
+	resources: mem_mb=get_mem("samtools_coverage_final")
 	params:
 		bool=get_vector(config,"regions")[0],
 	shell:
@@ -92,9 +92,9 @@ rule samtools_depth:
 		"results/02_mapping/depth/{sample}.depth"
 	conda:
 		"../envs/picard.yaml"
-	threads: get_thread
+	threads: get_thread("samtools_depth")
 	resources:
-		mem_mb=get_mem
+		mem_mb=get_mem("samtools_depth")
 	params:
 		extra=config["params_samtools_depth"],
 		bool=get_vector(config,"regions")[0],

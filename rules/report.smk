@@ -4,9 +4,9 @@ rule copy_config:
 	"""
 	output:
 		"results/00_logs/config_advanced"
-	threads: get_thread
+	threads: get_thread("copy_config")
 	resources:
-		mem_mb=get_mem
+		mem_mb=get_mem("copy_config")
 	params:
 		wd=WORKDIR,
 		config=config["repo_script"]
@@ -32,9 +32,9 @@ rule copy_region:
 		get_regions_file
 	output:
 		"results/genome/regions.bed"
-	threads: get_thread
+	threads: get_thread("copy_region")
 	resources:
-		mem_mb=get_mem
+		mem_mb=get_mem("copy_region")
 	params:
 		wd=WORKDIR
 	shell:
@@ -50,9 +50,9 @@ rule copy_sample_file:
 		config["sample"]
 	output:
 		"results/genome/sample_sheet"
-	threads: get_thread
+	threads: get_thread("copy_sample_file")
 	resources:
-		mem_mb=get_mem
+		mem_mb=get_mem("copy_sample_file")
 	params:
 		wd=WORKDIR
 	shell:
@@ -68,9 +68,9 @@ rule extract_flagstat:
 		expand("results/02_mapping/flagstat/{s.sample}.flagstat",s=SAMPLE.itertuples()),
 	output:
 		"results/02_mapping/flagstat/concatenate_flagstat.txt"
-	threads: get_thread
+	threads: get_thread("extract_flagstat")
 	resources:
-		mem_mb=get_mem
+		mem_mb=get_mem("extract_flagstat")
 	params:
 		wd=WORKDIR
 	shell:
@@ -140,9 +140,9 @@ rule report:
 		AR=get_AR,
 	conda:
 		"../envs/R.yaml"
-	threads: get_thread
+	threads: get_thread("report")
 	resources:
-		mem_mb=get_mem
+		mem_mb=get_mem("report")
 	shell:
 		"Rscript -e \"rmarkdown::render('{params.workdir}/script/ms_report.Rmd', output_file = '{params.wd}/{output}', params = list(result_dir='{params.wd}/results/', DP.min='{params.DP}', AR.min='{params.AR}'))\""
 		# "Rscript -e \"rmarkdown::render('/save/project/ijpb/bioinfo-code/src/essai_report.Rmd', output_file = '{params.wd}/{output}', params = list(result_dir='/work/gadam/msgenova_reduce/results/', DP.min='5', AR.min='0.2'),intermediates_dir='{params.wd}/results/')\""

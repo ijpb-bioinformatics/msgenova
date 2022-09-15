@@ -13,9 +13,9 @@ rule align:
 		extra=config["params_bwa"]
 	conda:
 		"../envs/tdnascan.yaml"
-	threads: get_thread
+	threads: get_thread("align")
 	resources:
-		mem_mb=get_mem
+		mem_mb=get_mem("align")
 	shell:
 		"""
 		bwa mem -R \"@RG\\tID:{wildcards.sample}\\tSM:{wildcards.sample}\\tLB:Illumina\\tPL:Illumina\\tPU:{wildcards.sample}\" -M -t {threads} {params.extra} {input.reference} {input.fq1} {input.fq2} > {output.sam} 
@@ -33,9 +33,9 @@ rule sort_sam:
 	params:
 		sort_order="coordinate",
 		extra=config["params_sort_sam"]
-	threads: get_thread
+	threads: get_thread("sort_sam")
 	resources:
-		mem_mb=get_mem
+		mem_mb=get_mem("sort_sam")
 	conda:
 		"../envs/picard.yaml"
 	shell:
@@ -53,9 +53,9 @@ rule mark_duplicate:
 		#enlever temp pour avoir les vecteurs
 		sam=temp("results/02_mapping/{sample}.mark_duplicates.bam"),
 		metrics="results/02_mapping/{sample}.mark_duplicates.metrics"
-	threads: get_thread
+	threads: get_thread("mark_duplicate")
 	resources:
-		mem_mb=get_mem
+		mem_mb=get_mem("mark_duplicate")
 	conda:
 		"../envs/picard.yaml"
 	params:
@@ -95,10 +95,10 @@ rule keep_mapped_only:
 	output:
 		"results/02_mapping/bam/{sample}.bam"
 	resources:
-		mem_mb=get_mem
+		mem_mb=get_mem("keep_mapped_only")
 	conda:
 		"../envs/picard.yaml"
-	threads: get_thread
+	threads: get_thread("keep_mapped_only")
 	params:
 		extra=config["params_extra_mapped_reads"],
 		bool=get_vector(config,"regions")[0],

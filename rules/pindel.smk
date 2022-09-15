@@ -9,8 +9,8 @@ rule create_input_pindel:
 	params:
 		wd=WORKDIR,
 		ins_size=get_size_insert
-	threads: get_thread
-	resources: mem_mb=get_mem
+	threads: get_thread("create_input_pindel")
+	resources: mem_mb=get_mem("create_input_pindel")
 	shell:
 		"""
 		if [ ! -d {params.wd}/results/04_pindel/ ]
@@ -33,8 +33,8 @@ rule run_pindel:
 		fai_ref="results/genome/"+REFERENCE+".fasta.fai"
 	output:
 		temp(expand("results/04_pindel/{{sample}}_{ext_pindel}",ext_pindel=["BP","D","INV","LI","SI","TD","INT_final","CloseEndMapped","RP"]),)
-	threads: get_thread
-	resources: mem_mb=get_mem
+	threads: get_thread("run_pindel")
+	resources: mem_mb=get_mem("run_pindel")
 	params:
 		wd=WORKDIR,
 		extra=config["params_run_pindel"]
@@ -53,8 +53,8 @@ rule convert_pindel:
 		expand("results/04_pindel/{{sample}}_{ext_pindel}",ext_pindel=["BP","CloseEndMapped","D","INV","LI","RP","SI","TD"]),
 	output:
 		temp("results/04_pindel/{sample}.vcf")
-	threads: get_thread
-	resources: mem_mb=get_mem
+	threads: get_thread("convert_pindel")
+	resources: mem_mb=get_mem("convert_pindel")
 	params:
 		reference="results/genome/"+REFERENCE+".fasta",
 		wd=WORKDIR,
@@ -75,8 +75,8 @@ rule merge_vcf_files:
 		expand("results/04_pindel/{s.sample}.vcf", s=SAMPLE.itertuples()),
 	output:
 		temp("results/04_pindel/pindel_results.vcf.gz")
-	threads: get_thread
-	resources: mem_mb=get_mem
+	threads: get_thread("merge_vcf_files")
+	resources: mem_mb=get_mem("merge_vcf_files")
 	conda:
 		"../envs/picard.yaml"
 	params:
@@ -130,8 +130,8 @@ rule annotate_pindel_output:
 		extra=config["params_snpeff_ann"]
 	conda:
 		"../envs/snpeff.yaml"
-	resources: mem_mb=get_mem
-	threads: get_thread
+	resources: mem_mb=get_mem("annotate_pindel_output")
+	threads: get_thread("annotate_pindel_output")
 	shell:
 		"""
 		snpEff -Xmx{resources.mem_mb} eff -c {input.config} {params.extra} -dataDir . {params.ref_name} -s {output.html} {input.vcf} > {output.vcf}
