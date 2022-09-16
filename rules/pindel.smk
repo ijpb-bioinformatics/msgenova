@@ -111,7 +111,7 @@ rule merge_vcf_files:
 		for file in {input}
 		do
 			rm {params.wd}/$file.gz
-			{params.wd}/$file.gz.tbi
+			rm {params.wd}/$file.gz.tbi
 		done
 		"""
 
