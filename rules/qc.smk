@@ -9,7 +9,7 @@ rule multiqc:
 	params:
 		extra=config["params_multiqc"]
 	conda:
-		"../envs/qc.yaml"
+		"../envs/env_qc.yaml"
 	shell:
 		"""
 		directory=`dirname {input[0]}`
@@ -35,7 +35,7 @@ rule trimming:
 	resources:
 		mem_mb=get_mem("trimming")
 	conda:
-		"../envs/qc.yaml"
+		"../envs/env_qc.yaml"
 	shell:
 		"""
 		trimmomatic PE -threads {threads} {params.extra} {input.r1} {input.r2} {output.r1} {output.r1_unpaired} {output.r2} {output.r2_unpaired} {params.trimmer} 2> {output.log}
@@ -52,7 +52,7 @@ rule trimmed_fqc2:
 	resources:
 		mem_mb=get_mem("trimmed_fqc2")
 	conda:
-		"../envs/qc.yaml"
+		"../envs/env_qc.yaml"
 	params:
 		extra=config["params_fastqc"]
 	shell:
@@ -69,7 +69,7 @@ rule trimmed_fqc1:
 	threads: get_thread("trimmed_fqc1")
 	resources: mem_mb=get_mem("trimmed_fqc1")
 	conda:
-		"../envs/qc.yaml"
+		"../envs/env_qc.yaml"
 	params:
 		extra=config["params_fastqc"]
 	shell:

@@ -115,7 +115,6 @@ rule report:
 	Create final report comporting all analysis results
 	"""
 	input:
-		#"results/04_pindel/pindel_results.vcf.gz"
 		get_input_report
 		#multiqc="results/01_sequence_qc/"+NAME_PROJECT+"_multiqc_trim.html",
 		#file_depth=expand("results/02_mapping/depth/{s.sample}.depth",s=SAMPLE.itertuples()),
@@ -139,7 +138,7 @@ rule report:
 		DP=get_DP,
 		AR=get_AR,
 	conda:
-		"../envs/R.yaml"
+		"../envs/env_R.yaml"
 	threads: get_thread("report")
 	resources:
 		mem_mb=get_mem("report")

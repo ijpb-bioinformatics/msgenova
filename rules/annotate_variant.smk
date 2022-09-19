@@ -14,7 +14,7 @@ rule build_snpeff_db:
 		vector=get_vector(config,"vector")[0],
 		ref_config=config["reference"]
 	conda:
-		"../envs/snpeff.yaml"
+		"../envs/env_snpeff.yaml"
 	resources:
 		mem_mb=get_mem("build_snpeff_db")
 	threads: get_thread("build_snpeff_db")	
@@ -48,6 +48,7 @@ rule annotate_variant:
 	"""
 	input:
 		vcf="results/03_snv_indels_calling/variants.merged.vcf",
+		idx="results/03_snv_indels_calling/variants.merged.vcf.idx",
 		config="results/genome/snpeff.config"
 	output:
 		vcf="results/03_snv_indels_calling/"+NAME_PROJECT+"_snv_indel.vcf",
@@ -56,7 +57,7 @@ rule annotate_variant:
 		ref_name=REFERENCE,
 		extra=config["params_snpeff_ann"]
 	conda:
-		"../envs/snpeff.yaml"
+		"../envs/env_snpeff.yaml"
 	resources:
 		mem_mb=get_mem("annotate_variant")
 	threads: get_thread("annotate_variant")

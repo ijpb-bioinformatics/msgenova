@@ -32,7 +32,7 @@ rule bwa_index_reference:
 	output:
 		index=expand("results/genome/"+REFERENCE+".fasta.{suffix}",suffix=SUFFIX_BWA),
 	conda:
-		"../envs/tdnascan.yaml"
+		"../envs/env_alignment.yaml"
 	resources:
 		mem_mb=get_mem("bwa_index_reference")
 	threads: get_thread("bwa_index_reference")
@@ -52,7 +52,7 @@ rule create_dict_reference:
 	output:
 		ref="results/genome/"+REFERENCE+".dict"
 	conda:
-		"../envs/picard.yaml"
+		"../envs/env_alignment.yaml"
 	threads: get_thread("create_dict_reference")
 	resources:
 		mem_mb=get_mem("create_dict_reference")
@@ -69,7 +69,7 @@ rule samtools_index_reference:
 	output:
 		ref="results/genome/"+REFERENCE+".fasta.fai"
 	conda:
-		"../envs/picard.yaml"
+		"../envs/env_alignment.yaml"
 	threads: get_thread("samtools_index_reference")
 	resources:
 		mem_mb=get_mem("samtools_index_reference")
@@ -90,7 +90,7 @@ rule index_alignment_file:
 	output:
 		bai="results/02_mapping/bam/{sample}.bam.bai"
 	conda:
-		"../envs/picard.yaml"
+		"../envs/env_alignment.yaml"
 	threads: get_thread("index_alignment_file")
 	resources:
 		mem_mb=get_mem("index_alignment_file")

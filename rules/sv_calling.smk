@@ -28,7 +28,7 @@ rule HaplotyCaller:
 		vcf=temp("results/03_snv_indels_calling/{sample}.{regions}.g.vcf"),
 		idx=temp("results/03_snv_indels_calling/{sample}.{regions}.g.vcf.idx")
 	conda:
-		"../envs/gatk4.yaml"
+		"../envs/env_gatk4.yaml"
 	threads: get_thread("HaplotyCaller")
 	params:
 		extra=config["params_haplotype_caller"],
@@ -58,7 +58,7 @@ rule GenomicsDB:
 		region=get_region,
 		extra=config["params_genomics_db"]
 	conda:
-		"../envs/gatk4.yaml"
+		"../envs/env_gatk4.yaml"
 	threads: get_thread("GenomicsDB")
 	resources: mem_mb=get_mem("GenomicsDB")
 	shell:
@@ -88,7 +88,7 @@ rule Genotype_gvcf:
 		vcf=temp("results/03_snv_indels_calling/variants.{regions}.vcf"),
 		idx=temp("results/03_snv_indels_calling/variants.{regions}.vcf.idx"),
 	conda:
-		"../envs/gatk4.yaml"
+		"../envs/env_gatk4.yaml"
 	resources: mem_mb=get_mem("Genotype_gvcf")
 	threads: get_thread("Genotype_gvcf")
 	params:
@@ -111,9 +111,10 @@ rule gatherVCF:
 		vcf=expand("results/03_snv_indels_calling/variants.{regions}.vcf",regions=LIST_REGION_HAPLOTYPECALLER),
 		idx=expand("results/03_snv_indels_calling/variants.{regions}.vcf.idx",regions=LIST_REGION_HAPLOTYPECALLER),
 	output:
-		temp("results/03_snv_indels_calling/variants.merged.vcf")
+		vcf=temp("results/03_snv_indels_calling/variants.merged.vcf"),
+		idx=temp("results/03_snv_indels_calling/variants.merged.vcf.idx")
 	conda:
-		"../envs/picard.yaml"
+		"../envs/env_alignment.yaml"
 	resources: mem_mb=get_mem("gatherVCF")
 	threads: get_thread("gatherVCF")
 	params:
@@ -125,5 +126,5 @@ rule gatherVCF:
 		do
 			list=$list" I="$file
 		done
-		picard -Xmx{resources.mem_mb} GatherVcfs $list O={output} {params.extra}
+		picard -Xmx{resources.mem_mb} GatherVcfs $list O={output.vcf} {params.extra}
 		"""

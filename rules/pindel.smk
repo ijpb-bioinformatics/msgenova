@@ -39,7 +39,7 @@ rule run_pindel:
 		wd=WORKDIR,
 		extra=config["params_run_pindel"]
 	conda:
-		"../envs/pindel.yaml"
+		"../envs/env_pindel.yaml"
 	shell:
 		"""
 		pindel {params.extra} -T {threads} -f {input.reference} -i {input.config_pindel} -o {params.wd}/results/04_pindel/{wildcards.sample}
@@ -60,7 +60,7 @@ rule convert_pindel:
 		wd=WORKDIR,
 		extra=config["params_convert_pindel"]
 	conda:
-		"../envs/pindel.yaml"
+		"../envs/env_pindel.yaml"
 	shell:
 		"""
 		pindel2vcf {params.extra} -r {params.reference} -P {params.wd}/results/04_pindel/{wildcards.sample} -R xxx -d xx -v {params.wd}/results/04_pindel/{wildcards.sample}.vcf
@@ -78,7 +78,7 @@ rule merge_vcf_files:
 	threads: get_thread("merge_vcf_files")
 	resources: mem_mb=get_mem("merge_vcf_files")
 	conda:
-		"../envs/picard.yaml"
+		"../envs/env_alignment.yaml"
 	params:
 		extra=config["params_merge_vcf_files"],
 		wd=WORKDIR
@@ -129,7 +129,7 @@ rule annotate_pindel_output:
 		ref_name=REFERENCE,
 		extra=config["params_snpeff_ann"]
 	conda:
-		"../envs/snpeff.yaml"
+		"../envs/env_snpeff.yaml"
 	resources: mem_mb=get_mem("annotate_pindel_output")
 	threads: get_thread("annotate_pindel_output")
 	shell:

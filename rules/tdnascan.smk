@@ -10,7 +10,7 @@ checkpoint cut_vector_file:
 	output:
 		directory("results/genome/tdnascan/vectors/")
 	conda:
-		"../envs/tdnascan.yaml"
+		"../envs/env_alignment.yaml"
 	threads: get_thread("cut_vector_file")
 	resources: mem_mb=get_mem("cut_vector_file")
 	params:
@@ -49,7 +49,7 @@ rule index_vector:
 	threads: get_thread("index_vector")
 	resources: mem_mb=get_mem("index_vector")
 	conda:
-		"../envs/tdnascan.yaml"
+		"../envs/env_alignment.yaml"
 	params:
 		extra=config["params_bwa_index_reference"],
 		wk=WORKDIR,
@@ -74,7 +74,7 @@ rule prepare_reference_tdnascan:
 		wk=WORKDIR,
 		extra=config["params_bwa_index_reference"]
 	conda:
-		"../envs/tdnascan.yaml"
+		"../envs/env_alignment.yaml"
 	shell:
 		"""
 		ln -s {input.ref} {params.wk}/{output.ref}
@@ -104,7 +104,7 @@ rule tdnascan:
 	threads: get_thread("tdnascan")
 	resources: mem_mb=get_mem("tdnascan")
 	conda:
-		"../envs/tdnascan.yaml"
+		"../envs/env_alignment.yaml"
 	shell:
 		"""
 		cd {params.wk}
@@ -156,7 +156,7 @@ rule tdnascan_annotate:
 		wd=WORKDIR,
 		extra=config["params_tdnascan_annotate"]
 	conda:
-		"../envs/tdnascan.yaml"
+		"../envs/env_alignment.yaml"
 	shell:
 		"""
 		path_script=`readlink -f {params.install_dir}/script/tdnaAnnot.py`

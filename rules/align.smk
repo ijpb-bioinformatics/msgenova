@@ -12,7 +12,7 @@ rule align:
 	params:
 		extra=config["params_bwa"]
 	conda:
-		"../envs/tdnascan.yaml"
+		"../envs/env_alignment.yaml"
 	threads: get_thread("align")
 	resources:
 		mem_mb=get_mem("align")
@@ -37,7 +37,7 @@ rule sort_sam:
 	resources:
 		mem_mb=get_mem("sort_sam")
 	conda:
-		"../envs/picard.yaml"
+		"../envs/env_alignment.yaml"
 	shell:
 		"""
 		picard SortSam  -Xmx{resources.mem_mb} --INPUT {input} --OUTPUT {output.bam} --SORT_ORDER {params.sort_order} {params.extra}
@@ -57,7 +57,7 @@ rule mark_duplicate:
 	resources:
 		mem_mb=get_mem("mark_duplicate")
 	conda:
-		"../envs/picard.yaml"
+		"../envs/env_alignment.yaml"
 	params:
 		extra=config["params_mark_duplicate"]
 	shell:
@@ -97,7 +97,7 @@ rule keep_mapped_only:
 	resources:
 		mem_mb=get_mem("keep_mapped_only")
 	conda:
-		"../envs/picard.yaml"
+		"../envs/env_alignment.yaml"
 	threads: get_thread("keep_mapped_only")
 	params:
 		extra=config["params_extra_mapped_reads"],
