@@ -140,7 +140,7 @@ rule report:
 		AR_min=get_AR_min,
 		AR=get_AR
 	conda:
-		"../envs/R.yaml"
+		"../envs/env_R.yaml"
 	threads: get_thread("report")
 	resources:
 		mem_mb=get_mem("report")
