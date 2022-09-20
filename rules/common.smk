@@ -63,7 +63,7 @@ def get_AR_min(wildcards):
 def get_AR(wildcards):
 	if get_vector(config,"AR")[0] == "TRUE":
 		return str("TRUE")
-	else
+	else:
 		return str("FALSE")
 
 def get_config_key(cfg,key,bool_var,dict):
