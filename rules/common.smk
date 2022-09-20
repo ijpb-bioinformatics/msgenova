@@ -32,10 +32,10 @@ def get_mem(rule):
 	if rule in List_of_rules:
 		return str("2G")
 	else:
-		if get_vector(config,"ram")[0] == "TRUE":
-			return str(get_vector(config,"ram")[1])
+		if get_vector(config,"mem")[0] == "TRUE":
+			return str(get_vector(config,"mem")[1])
 		else:
-			return "40G"
+			return "60G"
 
 def get_size_insert(wildcards):
 	try:
@@ -48,17 +48,23 @@ def transform_project_name(name):
 	new_name=re.sub(r"[.,;\n\t\s]*","",name)
 	return new_name
 
-def get_DP(wildcards):
+def get_DP_min(wildcards):
 	if get_vector(config,"DP.min")[0] == "TRUE":
 		return str(get_vector(config,"DP.min")[1])
 	else:
 		return "5"
 
-def get_AR(wildcards):
+def get_AR_min(wildcards):
 	if get_vector(config,"AR.min")[0] == "TRUE":
 		return str(get_vector(config,"AR.min")[1])
 	else:
 		return "0.2"
+
+def get_AR(wildcards):
+	if get_vector(config,"AR")[0] == "TRUE":
+		return str("TRUE")
+	else
+		return str("FALSE")
 
 def get_config_key(cfg,key,bool_var,dict):
 	try:

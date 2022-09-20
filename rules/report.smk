@@ -115,6 +115,7 @@ rule report:
 	Create final report comporting all analysis results
 	"""
 	input:
+		#"results/04_pindel/pindel_results.vcf.gz"
 		get_input_report
 		#multiqc="results/01_sequence_qc/"+NAME_PROJECT+"_multiqc_trim.html",
 		#file_depth=expand("results/02_mapping/depth/{s.sample}.depth",s=SAMPLE.itertuples()),
@@ -135,13 +136,14 @@ rule report:
 	params:
 		workdir=config["repo_script"],
 		wd=WORKDIR,
-		DP=get_DP,
-		AR=get_AR,
+		DP_min=get_DP_min,
+		AR_min=get_AR_min,
+		AR=get_AR
 	conda:
-		"../envs/env_R.yaml"
+		"../envs/R.yaml"
 	threads: get_thread("report")
 	resources:
 		mem_mb=get_mem("report")
 	shell:
-		"Rscript -e \"rmarkdown::render('{params.workdir}/script/ms_report.Rmd', output_file = '{params.wd}/{output}', params = list(result_dir='{params.wd}/results/', DP.min='{params.DP}', AR.min='{params.AR}'))\""
+		"Rscript -e \"rmarkdown::render('{params.workdir}/script/ms_report.Rmd', output_file = '{params.wd}/{output}', params = list(result_dir='{params.wd}/results/', DP.min='{params.DP_min}', AR.min='{params.AR_min}', AR='{params.AR}'))\""
 		# "Rscript -e \"rmarkdown::render('/save/project/ijpb/bioinfo-code/src/essai_report.Rmd', output_file = '{params.wd}/{output}', params = list(result_dir='/work/gadam/msgenova_reduce/results/', DP.min='5', AR.min='0.2'),intermediates_dir='{params.wd}/results/')\""
