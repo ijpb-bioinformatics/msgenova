@@ -32,7 +32,8 @@ rule run_pindel:
 		index_bam="results/02_mapping/bam/{sample}.bam.bai",
 		fai_ref="results/genome/"+REFERENCE+".fasta.fai"
 	output:
-		temp(expand("results/04_pindel/{{sample}}_{ext_pindel}",ext_pindel=["BP","D","INV","LI","SI","TD","INT_final","CloseEndMapped","RP"]),)
+		expand("results/04_pindel/{{sample}}_{ext_pindel}",ext_pindel=["BP","D","INV","LI","SI","TD","INT_final","CloseEndMapped","RP"]),
+		#temp(expand("results/04_pindel/{{sample}}_{ext_pindel}",ext_pindel=["BP","D","INV","LI","SI","TD","INT_final","CloseEndMapped","RP"]),)
 	threads: get_thread("run_pindel")
 	resources: mem_mb=get_mem("run_pindel")
 	params:
@@ -74,7 +75,8 @@ rule merge_vcf_files:
 	input:
 		expand("results/04_pindel/{s.sample}.vcf", s=SAMPLE.itertuples()),
 	output:
-		temp("results/04_pindel/pindel_results.vcf.gz")
+		"results/04_pindel/"+NAME_PROJECT+"_sv.vcf.gz"
+		#temp("results/04_pindel/pindel_results.vcf.gz")
 	threads: get_thread("merge_vcf_files")
 	resources: mem_mb=get_mem("merge_vcf_files")
 	conda:
@@ -115,24 +117,26 @@ rule merge_vcf_files:
 		done
 		"""
 
-rule annotate_pindel_output:
-	"""
-	Annotate pindel putput (in vcf format) using Snpeff
-	"""
-	input:
-		vcf="results/04_pindel/pindel_results.vcf.gz",
-		config="results/genome/snpeff.config"
-	output:
-		vcf="results/04_pindel/"+NAME_PROJECT+"_sv.vcf.gz",
-		html="results/04_pindel/"+NAME_PROJECT+"_sv.html"
-	params:
-		ref_name=REFERENCE,
-		extra=config["params_snpeff_ann"]
-	conda:
-		"../envs/env_snpeff.yaml"
-	resources: mem_mb=get_mem("annotate_pindel_output")
-	threads: get_thread("annotate_pindel_output")
-	shell:
-		"""
-		snpEff -Xmx{resources.mem_mb} eff -c {input.config} {params.extra} -dataDir . {params.ref_name} -s {output.html} {input.vcf} > {output.vcf}
-		"""
+#rule annotate_pindel_output:
+#	"""
+#	Annotate pindel putput (in vcf format) using Snpeff
+#	"""
+#	input:
+#		vcf="results/04_pindel/pindel_results.vcf.gz",
+#		config="results/genome/snpeff.config"
+#	output:
+#		vcf="results/04_pindel/"+NAME_PROJECT+"_sv.vcf.gz",
+#		html="results/04_pindel/"+NAME_PROJECT+"_sv.html"
+#	params:
+#		ref_name=REFERENCE,
+#		extra=config["params_snpeff_ann"]
+#	conda:
+#		"../envs/env_snpeff.yaml"
+#	resources: mem_mb=get_mem("annotate_pindel_output")
+#	threads: get_thread("annotate_pindel_output")
+#	shell:
+#		"""
+#		snpEff -Xmx{resources.mem_mb} eff -c {input.config} {params.extra} -dataDir . {params.ref_name} -s {output.html} {input.vcf} > {output.vcf}
+#		"""
+#
+#
