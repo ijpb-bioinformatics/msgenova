@@ -76,7 +76,7 @@ The configuration file contains pathways to all the inputs needed to run the pip
 
 
 | attribute       | Mandatory | Specific case | Description  |
-|------------------|------------------------------------------------------------------------------------|
+|------------------|-----------|------------|------------------------------------------------------------------------------------|
 | **project_name** | x | | name for the project. It is better for it  **not to have any tabulation or whitespace** |
 | **sample**       | x | | pathway to the sample sheet(see a)        |
 | **reference**    | x | | pathway to the reference, that must be in fasta format  |
