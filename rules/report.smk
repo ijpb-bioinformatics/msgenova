@@ -31,7 +31,7 @@ rule copy_region:
 	input:
 		get_regions_file
 	output:
-		"results/genome/regions.bed"
+		"results/00_logs/regions.bed"
 	threads: get_thread("copy_region")
 	resources:
 		mem_mb=get_mem("copy_region")
@@ -49,7 +49,7 @@ rule copy_sample_file:
 	input:
 		config["sample"]
 	output:
-		"results/genome/sample_sheet"
+		"results/00_logs/sample_sheet"
 	threads: get_thread("copy_sample_file")
 	resources:
 		mem_mb=get_mem("copy_sample_file")
@@ -58,6 +58,20 @@ rule copy_sample_file:
 	shell:
 		"""
 		cp {input} {params.wd}/{output}
+		"""
+
+rule copy_environments:
+	output:
+		directory("results/00_logs/envs/")
+	threads: get_thread("copy_environments")
+	resources: 
+		mem_mb=get_mem("copy_environments")
+	params:
+		install_dir=config["repo_script"]
+	shell:
+		"""
+		mkdir results/00_logs/envs
+		cp {params.install_dir}/envs/env* results/00_logs/envs/
 		"""
 
 rule extract_flagstat:
@@ -92,13 +106,14 @@ def get_input_report(wildcards):
 	list.extend(expand("results/02_mapping/coverage/{s.sample}.coverage",s=SAMPLE.itertuples()),)
 	list.extend(expand("results/02_mapping/flagstat/{s.sample}.flagstat",s=SAMPLE.itertuples()),)
 	list.append("results/02_mapping/flagstat/concatenate_flagstat.txt")
-	list.append("results/genome/sample_sheet")
+	list.append("results/00_logs/sample_sheet")
 	list.append("results/01_sequence_qc/log/trimmomatic.log")
 	list.append("results/00_logs/config_advanced")
 	list.append("results/03_snv_indels_calling/"+NAME_PROJECT+"_snv_indel.vcf")
 	list.append("results/03_snv_indels_calling/"+NAME_PROJECT+"snpeff.html")
+	list.append(directory("results/00_logs/envs/"))
 	if get_vector(config,"regions")[0] == "TRUE":
-		list.append("results/genome/regions.bed")
+		list.append("results/00_logs/regions.bed")
 	if get_vector(config,"vector")[0] == "TRUE":
 		checkpoint_output=checkpoints.cut_vector_file.get(**wildcards).output[0]
 		list.extend(expand("results/05_tdnascan/{s.sample}/{v}/5.{v}_insertion.annotated.bed", s=SAMPLE.itertuples(),v=glob_wildcards(os.path.join(checkpoint_output, "{v}.fa")).v))
@@ -115,22 +130,7 @@ rule report:
 	Create final report comporting all analysis results
 	"""
 	input:
-		#"results/04_pindel/pindel_results.vcf.gz"
 		get_input_report
-		#multiqc="results/01_sequence_qc/"+NAME_PROJECT+"_multiqc_trim.html",
-		#file_depth=expand("results/02_mapping/depth/{s.sample}.depth",s=SAMPLE.itertuples()),
-		#flag="results/03_mapping/flagstat/Extract_data.flagstat",
-		#flag=expand("results/02_mapping/flagstat/{s.sample}.flagstat",s=SAMPLE.itertuples()),
-		#sample_file=config["sample"],
-		#file_coverage=expand("results/02_mapping/coverage/{s.sample}.coverage",s=SAMPLE.itertuples()),
-		#expand("results/02_mapping/coverage/{s.sample}.coverage",s=SAMPLE.itertuples()),
-		#reference=config["reference"],
-		#qc_trimmo="results/01_sequence_qc/log/trimmomatic.log",
-		#haplotype_caller_html="results/03_snv_indels_calling/"+NAME_PROJECT+"snpeff.html",
-		#haplotype_caller_vcf="results/03_snv_indels_calling/"+NAME_PROJECT+"_snv_indel.vcf",
-		#config="results/00_logs/config_advanced",
-		#insertion=aggregate_vector,
-		#pindel=expand("results/04_pindel/{s.sample}_{ext_pindel}",s=SAMPLE.itertuples(),ext_pindel=["BP","CloseEndMapped","D","INV","LI","RP","SI","TD"]),
 	output:
 		"results/06_report/msgenova_report.html"
 	params:
@@ -145,5 +145,5 @@ rule report:
 	resources:
 		mem_mb=get_mem("report")
 	shell:
-		"Rscript -e \"rmarkdown::render('{params.workdir}/script/ms_report.Rmd', output_file = '{params.wd}/{output}', params = list(result_dir='{params.wd}/results/', DP.min='{params.DP_min}', AR.min='{params.AR_min}', AR='{params.AR}'))\""
+		"Rscript -e \"rmarkdown::render('{params.workdir}/script/report.Rmd', output_file = '{params.wd}/{output}', params = list(result_dir='{params.wd}/results/', DP.min='{params.DP_min}', AR.min='{params.AR_min}', AR='{params.AR}'))\""
 		# "Rscript -e \"rmarkdown::render('/save/project/ijpb/bioinfo-code/src/essai_report.Rmd', output_file = '{params.wd}/{output}', params = list(result_dir='/work/gadam/msgenova_reduce/results/', DP.min='5', AR.min='0.2'),intermediates_dir='{params.wd}/results/')\""
