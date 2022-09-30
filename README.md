@@ -246,6 +246,14 @@ You can fill the configuration information for all rules. In the example above, 
 - error: error file of the job
 - N: number of cores on which to run the job
 
+### Q6. How are plasmidic insertions found ?
+Plasmidic insertions are found using tDNAscan (https://doi.org/10.3389/fgene.2019.00685). The script was modified to be implemented in our pipeline. Genome index are created beforehand, and we have added an option to specify the repository containing the script, so that the tool could be implemented in our pipeline.
+
+### Q7. How to run the pipeline on a different slurm system ?
+To run the pipeline on another cluster system than Genotoul, please change, in the submission file, the pathway to the module conda and snakemake.
+
+### Q8. What if the pipeline stopped before the end and I want to rerun it entirely (and not from the point it stop at) ?
+In this case, please, delete the .snakemake directory, and rerun the pipeline.
 
 # LICENSE  
   
