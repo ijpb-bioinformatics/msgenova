@@ -77,7 +77,7 @@ def get_AR(wildcards):
 def get_config_key(cfg,key,bool_var,dict):
 	try:
 		value=cfg[key]
-		print("regions file exist")
+		#print("regions file exist")
 		bool_var= True
 		#Define Regions for analysis
 		LIST_CHR=[]
@@ -86,7 +86,7 @@ def get_config_key(cfg,key,bool_var,dict):
 		LIST_CHR.append(0)
 		return LIST_CHR,dict
 	except:
-		print("no regions file - Read reference")
+		#print("no regions file - Read reference")
 		bool_var= False
 		default_list=read_reference(config["reference"])
 		return default_list
@@ -95,12 +95,12 @@ def get_config_key(cfg,key,bool_var,dict):
 def define_reference(cfg,key):
 	try:
 		value=cfg[key]
-		print("there os vector in the config file")
+		#print("there os vector in the config file")
 		VECTOR_NAME=Path(config["vector"]).stem
 		REFERENCE=REF_NAME+"_"+VECTOR_NAME
 		return REFERENCE
 	except:
-		print("No vector in config")
+		#print("No vector in config")
 		REFERENCE=REF_NAME
 		return REFERENCE
 

@@ -1,17 +1,6 @@
 def get_region(wildcards):
 	x= dict_chr.get(str(wildcards.regions))
-	#print("essai dictionaire")
-	#print(wildcards.regions)
-	#for key in dict_chr.keys():
-	#	print("Key :"+str(key))
-	#for val in dict_chr.values():
-	#	print("Value :"+str(val))
-	#print("test keys")
-	#if wildcards.regions in dict_chr.keys():
-	#	print("in the list")
-	#else:
-	#	print("not in the list")
-	print(x)
+	#print(x)
 	return x
 
 rule HaplotyCaller:
@@ -103,8 +92,6 @@ rule Genotype_gvcf:
 		echo $list_db
 		gatk GenotypeGVCFs --reference {input.ref} -V gendb://{input.dir} -O {output.vcf} {params.extra}
 		"""
-#gatk GenotypeGVCFs --reference {input.ref} -O {output} -V $list_db
-#gatk GenotypeGVCFs --reference {input.ref} -V gendb://{input.dir} -O {output}
 
 rule gatherVCF:
 	input:

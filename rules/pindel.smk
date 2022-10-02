@@ -32,7 +32,7 @@ rule run_pindel:
 		index_bam="results/02_mapping/bam/{sample}.bam.bai",
 		fai_ref="results/genome/"+REFERENCE+".fasta.fai"
 	output:
-		expand("results/04_pindel/{{sample}}_{ext_pindel}",ext_pindel=["BP","D","INV","LI","SI","TD","INT_final","CloseEndMapped","RP"]),
+		expand("results/04_pindel/{{sample}}_{ext_pindel}",ext_pindel=["BP","D","INV","LI","SI","TD","RP"]),
 		#temp(expand("results/04_pindel/{{sample}}_{ext_pindel}",ext_pindel=["BP","D","INV","LI","SI","TD","INT_final","CloseEndMapped","RP"]),)
 	threads: get_thread("run_pindel")
 	resources: mem_mb=get_mem("run_pindel")
@@ -51,7 +51,7 @@ rule convert_pindel:
 	Convert pindel output to vcf format
 	"""
 	input:
-		expand("results/04_pindel/{{sample}}_{ext_pindel}",ext_pindel=["BP","CloseEndMapped","D","INV","LI","RP","SI","TD"]),
+		expand("results/04_pindel/{{sample}}_{ext_pindel}",ext_pindel=["BP","D","INV","LI","RP","SI","TD"]),
 	output:
 		temp("results/04_pindel/{sample}.vcf")
 	threads: get_thread("convert_pindel")
