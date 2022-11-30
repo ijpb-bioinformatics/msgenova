@@ -116,7 +116,7 @@ rule tdnascan:
 		path_script=`readlink -f {params.install_dir}/script/tdnascan.py`
 		cd results/05_tdnascan/{wildcards.sample}
 		# add argument for install parameters
-		python2.7 $path_script -1 {params.wk}/{input.fq1} -2 {params.wk}/{input.fq2} -t {params.wk}/{input.vector} -g {params.wk}/{input.reference} -p {wildcards.vector} -@ {threads} -i {params.wk}/script -d {params.wk}/results/05_tdnascan/{wildcards.sample} {params.extra}
+		python2.7 $path_script -1 {params.wk}/{input.fq1} -2 {params.wk}/{input.fq2} -t {params.wk}/{input.vector} -g {params.wk}/{input.reference} -p {wildcards.vector} -@ {threads} -i {params.install_dir}/script -d {params.wk}/results/05_tdnascan/{wildcards.sample} {params.extra}
 		"""
 
 rule clean_and_delete_tdnascan:
@@ -159,6 +159,7 @@ rule tdnascan_annotate:
 		"../envs/env_alignment.yaml"
 	shell:
 		"""
+		echo "tototototo"{params.install_dir}
 		path_script=`readlink -f {params.install_dir}/script/tdnaAnnot.py`
 		cd results/05_tdnascan/{wildcards.sample}
 		python2.7 $path_script -i {params.wd}/{input} -f {params.gff} -o {params.wd}/{output} {params.extra}
