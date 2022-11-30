@@ -43,7 +43,7 @@ rule run_pindel:
 		"../envs/env_pindel.yaml"
 	shell:
 		"""
-		pindel {params.extra} -T {threads} -f {input.reference} -i {input.config_pindel} -o {params.wd}/results/04_pindel/{wildcards.sample}
+		pindel {params.extra} -T {threads} -I -l -k -s  -f {input.reference} -i {input.config_pindel} -o {params.wd}/results/04_pindel/{wildcards.sample}
 		"""
 
 rule convert_pindel:
