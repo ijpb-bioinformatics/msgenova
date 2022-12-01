@@ -52,5 +52,8 @@ shift $((OPTIND-1))
 if [ -z "${outdir}" ] || [ -z "${config}" ] ; then
 	usage
 else
+	mkdir -p $outdir
+
 	sbatch snakemake -p --snakefile ${pipeline_path}/Snakefile --config repo_script=${pipeline_path} SV=${SV} AR=${AR}  --configfile $config --cluster-config ${pipeline_path}/cluster_config.json --cluster "sbatch --output {cluster.output} --error {cluster.error} --cpus-per-task {threads} --job-name {rule} --mem {resources.mem_mb} " --jobs 200 --latency-wait 90 --use-envmodules --use-conda --stats stat.json  --directory $outdir --conda-prefix ${pipeline_path}/envs/  --conda-frontend mamba >& snakemake.log
+
 fi

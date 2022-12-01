@@ -46,8 +46,8 @@ REFERENCE=define_reference(config,"vector")
 
 #if vector
 if get_vector(config,"regions")[0] == "TRUE":
-	print("there is a region file")
-	print(get_vector(config,"regions")[0])
+	#print("there is a region file")
+	#print(get_vector(config,"regions")[0])
 	REGIONS=pd.read_table(get_vector(config,"regions")[1], dtype=str,delimiter="\t",header=None,names=["chr","beg","end"]).set_index(["chr","beg"], drop=False)
 
 #Define bwa suffix
@@ -63,21 +63,13 @@ bool_region = False
 dict_chr={}
 
 LIST_REGION_HAPLOTYPECALLER,dict_chr=get_config_key(config,"regions",bool_region,dict_chr)
-print("List regions haplotypecaller")
-print(LIST_REGION_HAPLOTYPECALLER,dict_chr.values(),dict_chr.keys())
+#print(LIST_REGION_HAPLOTYPECALLER,dict_chr.values(),dict_chr.keys())
 
 #Transform project name
 NAME_PROJECT=transform_project_name(config["project_name"])
 
-#define list of vector name if vector is present in the configuration file
-#if get_vector(config,"vector")[0] == "TRUE":
-#	LIST_VECTOR,dict_vector=read_reference(get_vector(config,"vector")[1])
-
 rule all:
 	input:
-		#"aggregate.txt",
-		#"aggregate_pindel.txt"
-		#"results/01_sequence_qc/log/trimmomatic.log",
 		"results/06_report/msgenova_report.html"
 
 

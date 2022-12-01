@@ -31,11 +31,19 @@ def get_mem(rule):
 	List_of_rules=["build_snpeff_db","deal_with_vector","create_input_pindel","merge_vcf_files","multiqc","trimming","trimmed_fqc2","trimmed_fqc1","concatenate_log_trimmomatic","flagstat","samtools_coverage_by_regions","samtools_coverage","samtools_coverage_final","samtools_depth","copy_config","copy_region","copy_sample_file","extract_flagstat","report","cut_vector_file","copy_tdna","index_vector","prepare_reference_tdnascan","clean_and_delete_tdnascan"]
 	if rule in List_of_rules:
 		return str("2G")
+	if rule == "run_pindel":
+		#get ride of capital G and return double of value
+		if get_vector(config,"mem")[0] == "TRUE":
+			value=re.sub("G","",str(get_vector(config,"mem")[1]))
+			new_value=int(value)*2
+			return str(new_value)+str("G")
+		else:
+			return "60G"
 	else:
 		if get_vector(config,"mem")[0] == "TRUE":
 			return str(get_vector(config,"mem")[1])
 		else:
-			return "60G"
+			return "30G"
 
 def get_size_insert(wildcards):
 	try:
@@ -69,7 +77,7 @@ def get_AR(wildcards):
 def get_config_key(cfg,key,bool_var,dict):
 	try:
 		value=cfg[key]
-		print("regions file exist")
+		#print("regions file exist")
 		bool_var= True
 		#Define Regions for analysis
 		LIST_CHR=[]
@@ -78,7 +86,7 @@ def get_config_key(cfg,key,bool_var,dict):
 		LIST_CHR.append(0)
 		return LIST_CHR,dict
 	except:
-		print("no regions file - Read reference")
+		#print("no regions file - Read reference")
 		bool_var= False
 		default_list=read_reference(config["reference"])
 		return default_list
@@ -87,12 +95,12 @@ def get_config_key(cfg,key,bool_var,dict):
 def define_reference(cfg,key):
 	try:
 		value=cfg[key]
-		print("there os vector in the config file")
+		#print("there os vector in the config file")
 		VECTOR_NAME=Path(config["vector"]).stem
 		REFERENCE=REF_NAME+"_"+VECTOR_NAME
 		return REFERENCE
 	except:
-		print("No vector in config")
+		#print("No vector in config")
 		REFERENCE=REF_NAME
 		return REFERENCE
 

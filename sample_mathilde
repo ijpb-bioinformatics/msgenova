@@ -1,5 +1,0 @@
-sample	condition	fq1	fq2
-MeioMeNGS_4	wt	/save/project/ijpb/bioinfo-data/raw-data/TDNAsearch_M.Grelon/NG-30572_MeioMeNGS_4_lib609241_8164_3_1.fastq.gz	/save/project/ijpb/bioinfo-data/raw-data/TDNAsearch_M.Grelon/NG-30572_MeioMeNGS_4_lib609241_8164_3_2.fastq.gz
-MeioMeNGS_5	mt	/save/project/ijpb/bioinfo-data/raw-data/TDNAsearch_M.Grelon/NG-30572_MeioMeNGS_5_lib609242_8164_3_1.fastq.gz	/save/project/ijpb/bioinfo-data/raw-data/TDNAsearch_M.Grelon/NG-30572_MeioMeNGS_5_lib609242_8164_3_2.fastq.gz
-MeioMeNGS_6	mt	/save/project/ijpb/bioinfo-data/raw-data/TDNAsearch_M.Grelon/NG-30572_MeioMeNGS_6_lib609243_8164_3_1.fastq.gz	/save/project/ijpb/bioinfo-data/raw-data/TDNAsearch_M.Grelon/NG-30572_MeioMeNGS_6_lib609243_8164_3_2.fastq.gz
-MeioMeNGS_7	mt	/save/project/ijpb/bioinfo-data/raw-data/TDNAsearch_M.Grelon/NG-30572_MeioMeNGS_7_lib609244_8164_3_1.fastq.gz	/save/project/ijpb/bioinfo-data/raw-data/TDNAsearch_M.Grelon/NG-30572_MeioMeNGS_7_lib609244_8164_3_2.fastq.gz
