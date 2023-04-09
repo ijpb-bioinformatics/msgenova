@@ -132,7 +132,7 @@ rule report:
 	input:
 		get_input_report
 	output:
-		"results/06_report/msgenova_report.html"
+		"results/msgenova_report.html"
 	params:
 		workdir=config["repo_script"],
 		wd=WORKDIR,
@@ -145,5 +145,5 @@ rule report:
 	resources:
 		mem_mb=get_mem("report")
 	shell:
-		"Rscript -e \"rmarkdown::render('{params.workdir}/script/report.Rmd', output_file = '{params.wd}/{output}', params = list(result_dir='{params.wd}/results/', DP.min='{params.DP_min}', AR.min='{params.AR_min}', AR='{params.AR}'))\""
+		"Rscript -e \"rmarkdown::render('{params.workdir}/script/report.Rmd', output_file = '{params.wd}/{output}', intermediates_dir='{params.wd}/results',  params = list(result_dir='{params.wd}/results/', DP.min='{params.DP_min}', AR.min='{params.AR_min}', AR='{params.AR}'))\""
 		# "Rscript -e \"rmarkdown::render('/save/project/ijpb/bioinfo-code/src/essai_report.Rmd', output_file = '{params.wd}/{output}', params = list(result_dir='/work/gadam/msgenova_reduce/results/', DP.min='5', AR.min='0.2'),intermediates_dir='{params.wd}/results/')\""

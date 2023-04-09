@@ -30,7 +30,7 @@ SAMPLE = pd.read_table(config["sample"], dtype=str,delimiter="\t").set_index(["s
 SUFFIX_BLAST=["ndb","nhr","nin","nog","nos","not","nsq","ntf","nto"]
 
 #create results and logs output directory
-LIST_of_DIR=["results/00_logs/","results/01_sequence_qc/log/","results/02_mapping/log/","tmp","results/06_report/"]
+LIST_of_DIR=["results/00_logs/","results/01_sequence_qc/log/","results/02_mapping/log/","tmp"]
 for dir in LIST_of_DIR:
 	if not (os.path.isdir(dir)):
 		create_logsdir(dir)
@@ -70,7 +70,7 @@ NAME_PROJECT=transform_project_name(config["project_name"])
 
 rule all:
 	input:
-		"results/06_report/msgenova_report.html"
+		"results/msgenova_report.html"
 
 
 include: "rules/qc.smk"

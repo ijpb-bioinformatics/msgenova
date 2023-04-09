@@ -1,0 +1,86 @@
+
+
+```{r}
+
+config_advanced_file<-paste0(workspace,"/00_logs/config_advanced")
+config_ad<-read_yaml(config_advanced_file)
+```
+# Tools used
+
+```{r tools_used}
+space=paste0(workspace,"/00_logs/envs")
+for (file in list.files(space)){
+  env<-read_yaml(paste0(space,"/",file))
+  for (envi in env$dependencies){
+    line=sub("=="," version ",envi)
+    cat(line,"\n")
+  }
+}
+```
+
+# Trimming
+trimmomatic PE `r config_ad$params_trimmomatic ` input_r1 input_r2 output_r1 output_r2 TRAILING:3 2> log
+
+# Alignments
+
+## alignments
+bwa mem -R "@RG\tID:sample\tSM:sample\tLB:Illumina\tPL:Illumina\tPU:sample" -M `r config_ad$params_bwa` reference input_fq1 input_fq2 > output
+
+## convert sam to bam
+picard SortSam --INPUT input --OUTPUT output --SORT_ORDER coordinate `r config_ad$params_sort_sam`
+
+## mark duplicates
+picard MarkDuplicates --INPUT input --OUTPUT{output -M metrics `r config_ad$params_mark_duplicate`
+
+# QC bam
+
+## flagstat
+samtools flagstat `r config_ad$params_flagstat ` input > output
+
+## samtools coverage
+samtools coverage -o output `r config_ad$params_samtools_coverage ` input
+
+## samtools depth
+samtools depth `r config_ad$params_samtools_depth`  input > output
+
+# SV Calling
+
+## Run haplotyCallze
+gatk HaplotypeCaller -R reference -I input -O output -L region --native-pair-hmm-threads 16 `r config_ad$params_haplotype_caller`
+
+## Run GenomicsDB
+gatk GenomicsDBImport variant --genomicsdb-workspace-path output --intervals {params.region} `r config_ad$params_genomics_db`
+
+## Run GenotypeGVCF
+gatk GenotypeGVCFs --reference reference -V gendb://input -O output `r config_ad$params_genotype_gvcf`
+
+## Merge gvcf
+picard GatherVcfs list_of_vcf_files O=output `r config_ad$params_gathervcf`
+
+## Build snpeff database
+snpEff build -c output `r config_ad$params_snpeff_build` -gff3 -v reference -dataDir .
+
+## Annotate variant
+snpEff eff -c input `r config_ad$params_snpeff_ann` -dataDir . reference -s output.html input > output
+
+# Run pindel
+## run pindel
+pindel `r config_ad$params_run_pindel`  -f reference -i input -o output
+
+## convert pindel to vcf
+pindel2vcf `r config_ad$params_convert_pindel` -r reference -P sample name -R xxx -d xx -v output
+
+## Index vcf files and merge them
+tabix input
+bcftools merge -m none -Oz `r config_ad$params_merge_vcf_files` -o output list_vcf_files
+
+# Run tdnascan for vaector check
+
+## Cut multi-fasta vector file in individual files
+faSplit byname input output_directory `r config_ad$params_cut_vector`
+
+## run tdnascan
+python2.7 tdnascan.py -1 input_fq1 -2 input_fq2 -t vector_sequence -g reference -p vector_name -i script_directory -d output_directory `r config_ad$params_tdnascan`
+
+## run tdnascan annotate
+python2.7 tdnascan_annotate.py -i input -f annotation_file -o output `r config_ad$params_tdnascan_annotate`
