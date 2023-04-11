@@ -1,2 +1,222 @@
 # Small variants and Indels
 
+
+```{r read vcf,message=FALSE, warning=FALSE, echo=FALSE}
+# lire le ficher vcf
+vcf <- read.vcfR(file = vcf.file, verbose = FALSE)
+# transformer le vcfR en tibble
+vcf.tbl.list <- vcfR2tidy(vcf) 
+# concaténer fix et gt
+# rajouter l'info ID
+# extraire la valeur AD pour chaque allele
+# calculer l'allele ratio
+vcf.tbl <- dplyr::full_join(vcf.tbl.list$fix , vcf.tbl.list$gt, by = c("ChromKey", "POS")) %>%
+           dplyr::mutate(ID = dplyr::if_else(is.na(ID), paste(CHROM, POS, REF, ALT, sep="_"), ID)) %>% 
+           dplyr::filter(!str_detect(ALT, ",")) %>%
+           tidyr::separate(col = gt_AD, into = c("gt_ref.AD", "gt_alt.AD"), sep = ",", remove=FALSE) %>%
+           dplyr::mutate(gt_ref.AD = as.numeric(gt_ref.AD), gt_alt.AD = as.numeric(gt_alt.AD)) %>%
+           dplyr::mutate(gt_AR = if_else(gt_DP!=0 & !is.na(gt_DP), gt_alt.AD/gt_DP, as.numeric(NA))) %>%
+           dplyr::mutate(TYPE = if_else(str_length(REF)>1 || str_length(ALT)>1, "INDEL", "SNV")) %>%
+           dplyr::filter(!Indiv %in% c("SOJ-2-6-2-2-bis", "SOJ-5-3-3-1-bis", "SOJ-3-5-3-1"))
+
+# la taille du tableau
+#dim(vcf.tbl)
+#head(vcf.tbl)
+
+samples <- unique(vcf.tbl$Indiv)
+
+samples
+```
+
+
+# contrôle qualité et nettoyage des données
+
+## Les métriques de qualité
+
+```{r, score quality, out.width="50%", fig.show="hold", message=FALSE, warning=FALSE, echo=FALSE}
+
+# Score de qualité
+p <- ggplot(data=vcf.tbl) + geom_density(aes(QUAL)) + 
+          xlab("score de qualité") + ylab("densité") + xlim(c(0,200))
+print(p)
+
+# distribution de la couverture des positions variantes
+p <- ggplot(data=vcf.tbl) + geom_boxplot(aes(y=gt_DP, x=Indiv, color=Indiv), outlier.shape = NA) + 
+          ylab("DP of variants") + ylim(0, 100) +
+          theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1), legend.position="none")
+print(p)
+
+
+# Distribution de l'allèle ratio
+p <- ggplot(data=vcf.tbl) + geom_density(aes(gt_AR, color=Indiv)) + 
+          xlab("Ratio de l'allèle alternatif") + ylab("densité")
+
+if (length(samples) > 15){
+  p <- p + theme(legend.position="none")
+}
+
+print(p)
+
+
+# compter le nombre de positions non couvertes par échantillon.
+NA_count_samples <- dplyr::select(vcf.tbl, ID, Indiv, gt_DP) %>% 
+                    dplyr::group_by(Indiv) %>% dplyr::count(is.na(gt_DP)) %>%
+                    dplyr::filter(`is.na(gt_DP)` == TRUE)
+
+p <- ggplot(data=NA_count_samples) +  geom_bar(aes(y=n, x=Indiv), stat = "identity") + 
+  theme(axis.text.x = element_text(angle = 90, size = rel(0.8), hjust = 0)) + xlab("") + 
+  ylab("Positions manquées (non couvertes)")
+print(p)
+
+```
+
+## Filtres qualité
+* score de qualité : > `r qual.min`
+* nombre de reads qui couvrent la position variant : > `r DP.min`
+* nombre de reads qui portent l'allèle alternatif : > 1
+* retirer les positions avec au moins un échantillon non couvert.
+
+```{r filtre qual, message=FALSE, warning=FALSE, echo=FALSE}
+
+ vcf.tbl.q <- dplyr::filter(vcf.tbl, QUAL >= qual.min) %>%
+              dplyr::mutate(gt_alt.AD = if_else(gt_alt.AD < 2, 0, as.numeric(gt_alt.AD)),
+                            gt_DP     = if_else(gt_DP < DP.min, as.numeric(NA), as.numeric(gt_DP))) %>%
+              dplyr::mutate(gt_AR = if_else(gt_DP!=0 & !is.na(gt_DP), gt_alt.AD/gt_DP, as.numeric(NA)))
+
+#dim(vcf.tbl.q)
+
+
+# vcf.tbl.count <- vcf.tbl %>% select(ID, gt_AR, Indiv) %>%  reshape2::dcast(ID~Indiv, value.var = "gt_AR") %>%
+#   dplyr::mutate(NA_count = rowSums(is.na(dplyr::select(., -ID)))) %>% 
+#   dplyr::mutate(count_var = rowSums(0 != (dplyr::select(., -ID, -NA_count)))) %>% 
+#   select(ID, NA_count, count_var)
+
+
+vcf.tbl.q.count <- vcf.tbl.q %>% select(ID, CHROM, gt_AR, Indiv) %>%  
+  reshape2::dcast(CHROM+ID~Indiv, value.var = "gt_AR") %>%
+  dplyr::mutate(NA_count.q = rowSums(is.na(dplyr::select(., -ID)))) %>% 
+  dplyr::mutate(count_var.q = rowSums(0 != (dplyr::select(., -ID, -NA_count.q)))) %>% 
+  dplyr::filter(NA_count.q == 0 , !is.na(count_var.q))  
+
+vcf.tbl.q <- vcf.tbl.q %>% filter(ID %in% vcf.tbl.q.count$ID)
+
+#full_join(vcf.tbl.q.count , vcf.tbl.count , by="ID") %>% filter(NA_count != NA_count.q)
+
+```
+
+
+
+
+
+# Statistiques descriptives
+
+## Nombre des variants par échantillon.
+
+```{r, out.width="90%", message=FALSE, warning=FALSE, echo=FALSE}
+vcf.tbl.q %>% dplyr::filter(gt_AR > 0) %>% dplyr::select(ID, gt_AR, Indiv) %>% 
+  unique() %>% dplyr::group_by(Indiv) %>% dplyr::count(name="nbr_var") %>% 
+  ggplot() + geom_bar(aes(x=Indiv, y=nbr_var, fill=Indiv), stat = "identity") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1), legend.position="none") + 
+  xlab("") + ylab("# variants")
+```
+
+## Frequences alléliques dans les échantillons.
+
+```{r, out.width="60%", message=FALSE, warning=FALSE, echo=FALSE}
+# retirer les lignes variant-echantillon avec un allèle ref. 
+vcf.tbl.q.var <- dplyr::filter(vcf.tbl.q, gt_AR > 0) 
+
+# Découper la la ligne et dire ce que chacune fait?
+ID.uniq <- vcf.tbl.q.var %>% dplyr::select(ID, Indiv) %>% dplyr::group_by(ID) %>% count() 
+
+```
+
+
+```{r, out.width="90%", message=FALSE, warning=FALSE, echo=FALSE, eval=FALSE}
+df <- dplyr::full_join(ID.uniq, vcf.tbl.q.var, by="ID") %>% 
+      dplyr::select(Indiv, n) %>% dplyr::group_by(n, Indiv) %>% dplyr::count()
+
+p <- ggplot(data=df, aes(x=as.factor(n), y=nn)) + geom_boxplot(outlier.shape = NA) +
+  geom_point(size = 0.8, aes(color=Indiv), position=position_jitter(width = 0.2)) + xlab("freq in samples") + ylab("# variants")
+
+if (length(samples) > 15){
+  
+  p <- p + theme(legend.position="none")
+}
+print(p)
+```
+
+# recherche de pics
+
+* points gris : variations ref ou fréquentes (communes à 5 échantillons et plus).
+* points verts : variations non ref et non fréqunetes.
+* points rouges : variations non ref et non fréquentes avec un ratio égales ou sup à `r hom`.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, eval=FALSE}
+vcf.tbl.q.var <- dplyr::filter(vcf.tbl.q, gt_AR > 0, !is.na(gt_AR)) 
+
+ID.ref  <- dplyr::filter(vcf.tbl.q.var, Indiv == ref) 
+#vcf.tbl.non.ref <- dplyr::filter(vcf.tbl.q.var, ! ID %in% ID.ref$ID)
+
+#dim(vcf.tbl.non.ref)
+```
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, eval=FALSE}
+
+# test sans dplyr::select -> error pour illuster pourquoi il est important de rajouter le nom du package avnat la fonction
+#ID.uniq <- select(vcf.tbl.non.ref, ID, Indiv) %>% group_by(ID) %>% count() %>% filter(n < 2) 
+ID.uniq <- dplyr::select(vcf.tbl.q.var, ID, Indiv) %>% group_by(ID) %>% count() %>% filter(n < 2) 
+
+vcf.tbl.uniq <- dplyr::filter(vcf.tbl.q.var, ID %in% ID.uniq$ID)
+vcf.tbl.nonref  <- dplyr::filter(vcf.tbl.q.var, !ID %in% ID.ref$ID, ID %in% filter(vcf.tbl.q.count, count_var.q < 5)$ID)
+#
+#dim(vcf.tbl.uniq)
+
+```
+
+
+```{r plot all indiv, warning=FALSE, message=FALSE, fig.height=2, message=FALSE, warning=FALSE, echo=FALSE, eval=FALSE}
+
+mutations.list <- list()
+
+
+# une boucle sur l'ensemble des échantillons
+for(ind in unique(vcf.tbl$Indiv)){
+  
+  print(ind)
+  
+#  vcf.tbl.ind         <- dplyr::filter(vcf.tbl.q,       Indiv==ind)
+  vcf.tbl.q.var.ind   <- dplyr::filter(vcf.tbl.q.var,   Indiv==ind)
+  #vcf.tbl.uniq.ind    <- dplyr::filter(vcf.tbl.uniq,    Indiv==ind)
+  vcf.tbl.uniq.ind  <- dplyr::filter(vcf.tbl.nonref,     Indiv==ind)
+
+  
+  hom.chr <- dplyr::filter(vcf.tbl.uniq.ind, gt_AR > hom) %>% dplyr::select(CHROM) %>% unique()
+  var.to.smooth <- dplyr::filter(vcf.tbl.uniq.ind, CHROM %in% hom.chr$CHROM, gt_AR >= AR.min)
+  
+  # stocker le res dans une list
+  mutations.list[[ind]] <- var.to.smooth %>% dplyr::filter(gt_AR > hom)
+    
+  p <- ggplot() + ylim(0,1) +
+      geom_point( data=vcf.tbl.q.var.ind,    aes(x=POS, y=gt_AR), size=0.2, color="grey80") + 
+      geom_point( data=vcf.tbl.uniq.ind,     aes(x=POS, y=gt_AR), size=0.3, color="green") + 
+      geom_point( data=mutations.list[[ind]],aes(x=POS, y=gt_AR), size=0.5, color="red") + 
+      geom_smooth(data=var.to.smooth,        aes(x=POS, y=gt_AR), size=0.5) +
+      facet_grid( ~ CHROM, scale="free",  space = "free") +
+      theme(axis.text.x = element_text(angle = 90, size = rel(0.8), hjust = 0),
+            axis.text.y = element_text(size = rel(0.8), hjust = 0)) +
+      scale_x_continuous(breaks = seq(0, max(vcf.tbl$POS), 1e+07))
+  print(p)
+  
+  
+}
+
+# concatener les tibbles
+mutations <- purrr::reduce(mutations.list, rbind) %>% select(CHROM, ID, QUAL, gt_DP, gt_ref.AD, gt_alt.AD, gt_AR, Indiv, ANN) %>% separate(ANN, c("tmp1","eff", "tmp2", "gene"), "\\|") %>% select(-paste0("tmp",1:2)) 
+
+
+mutations %>% select(Indiv, ID, eff) %>% filter(!eff %in% c("downstream_gene_variant", "intergenic_region", "upstream_gene_variant")) %>% unique() %>% group_by(Indiv, eff) %>% count(name = "count")
+
+write.table(mutations, file="SOJ_filt2_mutation_Ho.xls", quote = FALSE, row.names = FALSE, col.names = TRUE, sep = "\t")
+
+```

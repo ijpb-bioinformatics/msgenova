@@ -1,5 +1,5 @@
 ---
-title: "to change"
+title: "Report"
 author: " "
 date: "2022-08-16"
 output:
@@ -22,69 +22,46 @@ params:
 
 ```{r setup, include=FALSE}
 # title: "`r params$title`"
+workspace <- "/Users/nbentahar/Documents/PROJECTs/DEV/msgenova/examples/soj/results/"
+#workspace<-params$result_dir
+
+sample_sheet.file <- "/Users/nbentahar/Documents/PROJECTs/DEV/msgenova/examples/soj/sample_sheet_soj_3samples.txt"
+
 knitr::opts_chunk$set(root.dir=workspace, echo = FALSE , warning=FALSE, error=TRUE, message=FALSE)
 ```
 
+
 ```{r }
-library(tidyverse)
 library(DT)
 library(ggplot2)
-library(plyr)
+library(vcfR)
 library(dplyr)
 library(yaml)
 
 ```
 
+
 ```{r}
-workspace<-params$result_dir
-```
 
-
-
-## Trimming parameters
-
-```{r trimmomatic}
-trimmo<-paste0(workspace,"/01_sequence_qc/log/trimmomatic.log")
-dat<-read.table(text=gsub(" ","\t",readLines(trimmo)),  header=TRUE)
-DT::datatable(dat)
-```
-
-## Mapping parameters
-
-### Flagstat results
-
-```{r flagstat}
-library(tidyverse)
-file <- paste0(workspace,"/02_mapping/flagstat/concatenate_flagstat.txt")
-if(file.exists(file)){
-    flagstat <- read.table(file, sep="\t", header=FALSE) %>% 
-      dplyr::mutate(mapped=V3-V4, unmapped=V2-V3, supplementary=V4, 
-                    mapped.ratio=round(mapped/(mapped+unmapped)*100,2), 
-                    unmapped.ratio=round(unmapped/(mapped+unmapped)*100,2),
-                    supplementary.ratio=round(supplementary/(mapped+unmapped)*100,2)) %>% dplyr::select(-V2, -V3, -V4)
-    names(flagstat) <- c("sample", "mapped", "unmapped", "supplementary", "mapped.ratio", "unmapped.ratio", "supplementary.ratio")
-
-  } 
-
-DT::datatable(flagstat, options = list(rownames = TRUE, pageLength = 10, scrollX = T, dom = 'tip'),class = 'cell-border stripe')
-#count
-nbr.reads.melt <- flagstat %>% dplyr::select(sample, mapped, unmapped, supplementary) %>% reshape2::melt(id = "sample", value.name = "nbr.reads")
-summary.nbr <- nbr.reads.melt %>% group_by(variable) %>% summarise(median=median(nbr.reads), max=max(nbr.reads), min=min(nbr.reads))
-nbr.reads.melt <- left_join(nbr.reads.melt, summary.nbr, by = "variable") %>% mutate(x.label=paste0(variable, "\nmedian=", median, "\nmax=", max, "\nmin=", min))
-ggplot(data = nbr.reads.melt, aes(y=nbr.reads, x=x.label)) + geom_boxplot()  + xlab("") + ylab("number of reads") + ggtitle("Boxplot representing the number of mapped/supplementary/unmapped reads")+theme_bw()
-#ratio
-ratio.reads.melt <- flagstat %>% dplyr::select(sample, mapped.ratio, supplementary.ratio) 
-names(ratio.reads.melt) <- c("sample", "mapped", "supplementary")
-ratio.reads.melt <- ratio.reads.melt %>% reshape2::melt(id = "sample", value.name = "ratio")
-summary.ratio <- ratio.reads.melt %>% group_by(variable) %>% summarise( median=round(median(ratio),2), max=round(max(ratio),2), min=round(min(ratio),2))
-ratio.reads.melt <- left_join(ratio.reads.melt, summary.ratio, by = "variable") %>% mutate(x.label=paste0(variable, "\nmedian=", median, "%\nmax=", max, "%\nmin=", min, "%"))
-ggplot(data = ratio.reads.melt) + geom_boxplot(aes(y=ratio, x=x.label)) + xlab("") + ylab("% reads") + scale_y_continuous(breaks = seq(0, max(ratio.reads.melt$ratio)+10, 20)) + ggtitle("Boxplot representing the percentage of mapped reads and supplementary alignments")+theme_bw()
+sample_sheet <- read.table(file = sample_sheet.file, header = TRUE, sep = "\t")
 
 ```
 
 
+```{r quality_control.Rmd}
 
-```{r SNV_InDels_calling.Rmd}
+  out <- NULL
+
+  out <- c(out, knitr::knit_child("quality_control.Rmd"), quiet=TRUE)
+    
+knitr::asis_output(out)
+
+```
+
+
+```{r SNV_InDels_calling.Rmd, eval=FALSE}
+
+vcf.file <- "/Users/nbentahar/Documents/PROJECTs/DEV/msgenova/examples/soj/results/03_snv_indels_calling/SOJ_snv_indel.vcf"
 
   out <- NULL
 
@@ -95,7 +72,7 @@ knitr::asis_output(out)
 ```
 
 
-```{r SV_calling.Rmd}
+```{r SV_calling.Rmd, eval=FALSE}
 
   out <- NULL
 
@@ -105,7 +82,7 @@ knitr::asis_output(out)
 
 ```
 
-```{r tDNA_scan.Rmd}
+```{r tDNA_scan.Rmd, eval=FALSE}
 
   out <- NULL
 
@@ -116,9 +93,7 @@ knitr::asis_output(out)
 ```
 
 
-# Tools used
-
-```{r tools}
+```{r tools, eval=FALSE}
 
   out <- NULL
   
