@@ -1,0 +1,43 @@
+
+### `r sample` {.tabset}
+
+#### summary of homozygous SV
+
+```{r sv_spec_plot_hom, echo=FALSE}
+
+bam <- paste0(sample,".bam")
+
+SV.NGS.hom <-  SV %>%  dplyr::filter(
+    .data[[bam]]  %in% c("1/1"),SPEC == 1) %>% dplyr::arrange(.,CHROM,POS)
+
+if(dim(SV.NGS.hom)[1] >=1){
+SV.NGS.hom  %>% group_by(CHROM,SVTYPE) %>% count() %>% ggplot() + geom_bar(aes(x=CHROM,y=n,fill=SVTYPE),stat="identity") + scale_fill_manual(values=c("lightsalmon","royalblue1","green","magenta1","yellow"),drop=FALSE) + xlab("Chromosoms")
+}
+
+```
+
+#### table of homozygous SV
+
+```{r sv_spec_plot_table_hom, echo=FALSE}
+DT::datatable(SV.NGS.hom %>% dplyr::select(.,-contains(".bam")))
+```
+
+#### summary of heterozygous SV
+
+```{r sv_spec_plot_het, echo=FALSE}
+bam <- paste0(sample,".bam")
+
+SV.NGS.het <-  SV %>%  dplyr::filter(
+    .data[[bam]]  %in% c("0/1"),SPEC == 1) %>% dplyr::arrange(.,CHROM,POS) 
+
+if(dim(SV.NGS.het)[1] >=1){
+SV.NGS.het %>% group_by(CHROM,SVTYPE) %>% count() %>% ggplot() + geom_bar(aes(x=CHROM,y=n,fill=SVTYPE),stat="identity") + scale_fill_manual(values=c("lightsalmon","royalblue1","green","magenta1","yellow"),drop=FALSE)
+}
+```
+
+#### table of heterozygous SV
+
+```{r sv_spec_plot_table_het, echo=FALSE}
+DT::datatable(SV.NGS.het %>% dplyr::select(.,-contains(".bam")))
+```
+

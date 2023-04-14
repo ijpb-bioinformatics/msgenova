@@ -1,0 +1,23 @@
+### `r sample`
+
+```{r depthVec, eval=TRUE, echo=FALSE}
+
+file <- paste0(path_results,"/results/02_mapping/depth/",sample,".depth")
+
+if(file.exists(file)){
+  depth <- read.table(file,h=TRUE) 
+}
+  
+colnames(depth) <- c("rname", "position", "depth")
+
+depth.vector <- dplyr::filter(depth, rname %in%  perSample_vectorList[[sample]]$both.list)
+
+if(dim(depth.vector)[1] > 0){
+
+ggplot(depth.vector) + geom_bar(aes(x=position, y=depth),stat="identity",colour="blue") + 
+  theme(legend.position="none", axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  ylab("Depth of coverage") + facet_wrap(vars(rname),scales = "fixed",ncol=1)
+}
+
+```
+

@@ -1,0 +1,90 @@
+
+### `r sample` {.tabset}
+
+#### Summary of insertion reads 
+
+```{r insertion, echo=FALSE}
+
+insRead.list <- list()
+
+for(vector_i in perSample_vectorList[[sample]]$both.list){
+  
+  insertion_read_file <- paste0(path_results,"/results/05_tdnascan","/",sample,"/",vector_i,"/4.insertionRead.txt")
+  
+  if(file.exists(insertion_read_file) & file.size(insertion_read_file) != 0 ){
+    
+    insRead.list[[paste0(sample,"_",vector_i)]] <- read.table(insertion_read_file,sep="\t") %>% 
+      dplyr::mutate(sample = sample) %>% 
+      dplyr::mutate(vector = vector_i) 
+    
+  }
+}
+
+insRead <- purrr::reduce(insRead.list, rbind)
+
+insRead.summary <- insRead %>% 
+dplyr::mutate(insRead,V1=str_remove_all(V1,pattern="[\\(\\)]")) %>%   tidyr::separate(V1,into=c("chromosome","position","type","tdna_border","tdna_position","orientation"),sep=",") %>% dplyr::mutate(position=as.numeric(position)) %>% dplyr::group_by(chromosome,position,type,tdna_border,tdna_position,orientation,vector) %>%
+dplyr::count()
+
+DT::datatable(insRead.summary)
+```
+
+
+
+```{r depthNGS, eval=TRUE, echo=FALSE}
+
+depth <- read.table(paste0(path_results,"/results/02_mapping/depth/",sample,".depth"),h=TRUE) 
+colnames(depth) <- c("rname", "position", "depth")
+SIZE=10000
+
+p <- list()
+
+for(vector_j in unique(ins$vector)){
+  
+  ins.sample <- dplyr::filter(ins, sample == !!sample, vector == !!vector_j) %>% 
+    dplyr::group_by(vector, insertion_id)
+  
+  depth.filt.sample <- list()
+  
+  if(dim(ins.sample)[1] != 0){
+    
+    for(i in 1:dim(ins.sample)[1]){
+      
+      depth.filt <- dplyr::filter(depth, 
+                                  rname == ins.sample[i,]$Chromosome, 
+                                  position >= (ins.sample[i,]$Position-SIZE),
+                                  position <= (ins.sample[i,]$Position+SIZE))
+      
+      depth.filt <- dplyr::mutate(depth.filt, 
+      insertion_id = paste0(sample,"_",ins.sample[i,]$vector,"_",rname,"_ins_",i), vector=ins.sample[i,]$vector)
+      
+      depth.filt.sample[[i]] <- depth.filt[seq(from=1,to=dim(depth.filt)[1],by=20),]
+      
+    }
+    depth.plot <- purrr::reduce(depth.filt.sample, rbind) 
+    
+    p[[vector_j]] <- ggplot(depth.plot) + geom_bar(aes(x=position, y=depth),stat="identity",colour="blue") + 
+      theme(legend.position="none", axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+      ylab("Depth of coverage") + facet_wrap(vars(insertion_id),scales = "free", ncol=1) + 
+      geom_vline(data=ins.sample, aes(xintercept = Position ,col="red")) + 
+      geom_text(data=ins.sample,aes(x=Position,y=4,label=paste0("ins_pos: ",Position),colour="red",fontface = "bold"))
+    #print(p[[vector_j]])
+  }
+}
+
+
+```
+
+#### Depth along insertion sites +- 10 kb {.tabset}
+
+```{r, eval=TRUE, echo=FALSE, results='asis', fig.height=15}
+for(vector_j in unique(ins$vector)){
+  cat("##### Vector", vector_j, "\n")
+  print(p[[vector_j]])
+  cat("\n\n")
+}
+```
+
+
+
+

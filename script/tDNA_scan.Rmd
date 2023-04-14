@@ -1,1 +1,385 @@
-# tDNA scan
+
+# parameters
+
+```{r param}
+path_results <- workspace
+samplesheet <- sample_sheet
+vector.sep <- ","
+nb_common_samples=10
+SVsize_CutOff = 500
+```
+
+# test sample sheet 
+
+```{r testSS, eval=TRUE, echo=FALSE}
+
+# test de l'existence de sample_sheet:
+# !! des colonnes additionnelles sont attendues pour le sample_sheet !!
+# Si celles-ci sont complétées au démarrage du pipeline, cela posera
+# problème avec le pipeline snakemake
+# tdna (required): 1 to many separate by ","
+# vector (optional): NA to many separate by ","
+
+if(dir.exists(path_results) & file.exists(samplesheet)){
+  sample_sheet <- read.table(samplesheet,sep="\t",header=TRUE)
+}
+
+# construction of the list of searched tdna and/or vector
+
+perSample_vectorList <- as.list(1:dim(sample_sheet)[1])
+
+for(k in 1:dim(sample_sheet)[1]){
+  tmp.l <- list()
+  tmp.l[["tdna.list"]] <- stringr::str_split(sample_sheet[k,"tdna"], pattern = vector.sep)[[1]]
+  tmp.l[["vector.list"]] <- stringr::str_split(sample_sheet[k,"vector"],pattern = vector.sep)[[1]]
+  tmp.l[["both.list"]] <- na.omit(c(tmp.l[["tdna.list"]],tmp.l[["vector.list"]]))
+  perSample_vectorList[[k]] <- tmp.l
+}
+names(perSample_vectorList) <- sample_sheet$sample
+
+```
+
+
+# Load libraries
+
+```{r load.lib, echo=FALSE,message=FALSE}
+library(tidyverse)
+library(vcfR)
+```
+
+# tDNA coverage statistics in comparison with other chromosoms:
+
+This statistics will indicate the number of times the tDNA may be inserted and if it
+is completely inserted.
+
+## Mean depth:
+
+```{r depth, echo=FALSE, warning=FALSE}
+
+# reads the statistics of chromosoms and vectors mean depth
+
+cov.list <- lapply(sample_sheet$sample, function(x){
+  
+  file <- paste0(path_results,"/results/02_mapping/coverage","/", x, ".coverage")
+  
+  if(file.exists(file)){
+    read.table(file, sep="\t") %>%  dplyr::filter(V4 > 1)  %>% dplyr::mutate(sample = x)
+  }
+})
+
+if(length(cov.list) != 0){
+  
+  cov <- purrr::reduce(cov.list, rbind) 
+  
+  colnames(cov) <- c("rname",	"startpos",	"endpos",	"numreads",	
+                     "covbases",	"coverage",	"meandepth",	"meanbaseq",	"meanmapq", "sample")
+  
+  # Mean depth (log10)
+  g1 <- ggplot(cov) + geom_bar(aes(y=meandepth, x=rname),stat = "identity") + 
+    xlab("") + ylab("Mean Depth") + ggtitle("Mean depth (log10)") + facet_wrap( ~ sample) +
+    theme(axis.text.x=element_text(angle=90,hjust=1)) + theme_bw() + scale_y_continuous(trans='log10',limits=c(1,NA)) +
+    coord_flip() + geom_text(aes(x = rname,y=10,label=paste0(round(meandepth,0)," x")),color="red")
+  g1
+}
+```
+
+## Chromosoms coverage (%):
+
+
+```{r coverage, echo=FALSE}
+if(length(cov) != 0){
+  g2<-ggplot(cov) + geom_bar(aes(y=coverage, x=rname),stat = "identity") + xlab("") + ylab("% coverage") + ggtitle("Chromosoms coverage (%)")+facet_wrap( ~ sample)+theme(axis.text.x=element_text(angle=90,hjust=1)) + theme_bw() + coord_flip()
+  g2
+}
+```
+
+
+
+## Depth of coverage along vectors:
+
+<!-- ### Graph per sample -->
+
+```{r , message=FALSE, warning=FALSE, echo=FALSE}
+
+  out <- NULL
+  
+  for (sample  in  unique(sample_sheet$sample)) {
+      out <- c(out, knitr::knit_child("per_sample_vector_depth.Rmd", quiet=TRUE))  
+    }
+    
+knitr::asis_output(out)
+```
+
+
+
+# TDNAscan results: 
+
+tdnascan was used to detect tdna insertion [@sun_tdnascan_2019].
+
+
+## Table of detected insertion: {.tabset}
+
+* Results description:
+  + Chromosome: Chromosome number
+  + Position: Start position of insertion in the reference genome
+  + \#soft.clipped: The soft-clipped reads (CLR) are reads where one partial read of a single read perfectly mapped to the plant reference genome and the other partial read of the same single read perfectly mapped to the inserted T-DNA. 
+  + \#Discordant: In tdnascan, the discordant reads (DIR) are defined as one read of a pair successfully mapped to the plant reference genome and the other read of the same pair mapped to part of the inserted T-DNA.
+  + tdna.start: Start position of T-DNA sequence
+  + tdna.end: End position of T-DNA sequence
+  + orientation: Forward or reverse T-DNA inserted to reference genome
+  + insertion zygotie: #soft.clipped/(\#soft.clipped + \#span) with \#span = \# reads MAPQ > 30 which span the Insertion site with at least 5bp at each side
+  + annotation:
+  + sample: 
+  + insertion_id: 
+  
+### Overview of exact insertion's positions 
+
+
+```{r bed.tab.plot, echo =FALSE,message=FALSE}
+
+# Concatenate all tdnascan results
+
+ins.list <- list()
+
+for(x in sample_sheet$sample){
+  
+  for(vector_i in perSample_vectorList[[x]]$both.list){
+    
+    file <- list.files(path=paste0(path_results,"/results/05_tdnascan","/",x,"/",vector_i,"/"), 
+                       pattern="annotated.bed", full.names = TRUE)
+    
+    if(length(file) != 0){
+      if(file.size(file) != 0){
+        
+        tmp <- read.table(file, sep="\t",h=FALSE) %>% dplyr::mutate(sample = x, vector = vector_i)
+        
+        if(dim(tmp)[1] != 0){
+          
+          ins.list[[paste0(x,"_",vector_i)]] <- 
+            dplyr::mutate(tmp, insertion_id = paste0(x,"_",vector_i,"_",V1,"_ins_",1:dim(tmp)[1]))
+          
+        }
+      }
+    }
+  }
+}
+
+ins <- purrr::reduce(ins.list, rbind) 
+ins <- separate(ins,V3,into=c("CLR","DIR"),sep=",")
+ins <- separate(ins,V4,into=c("tdna_st","tdna_end"),sep=",")
+ins <- mutate(ins,CLR = str_extract(CLR,pattern="(\\d)+"),
+              DIR=str_extract(DIR,pattern="(\\d)+"),
+              tdna_st=str_extract(tdna_st,pattern="(\\d)+"),
+              tdna_end=str_extract(tdna_end,pattern="(\\d)+"))
+
+
+names(ins)<-c("Chromosome","Position","#soft.clipped","#Discordant",
+              "tdna.start","tdna.end","orientation","insertion zygotie",
+              "annotation","sample","vector","insertion_id")
+
+
+Chrom <- dplyr::filter(cov,rname %in% ins$Chromosome) %>% dplyr::select(.,c("rname","startpos","endpos")) 
+Chrom <- dplyr::distinct(Chrom) %>% dplyr::rename(.,Chromosome=rname)
+    
+ ggplot(data=ins)+
+     geom_rect(data=Chrom, mapping = aes(xmin=startpos,xmax=endpos,ymin=0.2,ymax=0.3),color="grey")+
+     facet_grid(sample~Chromosome,space="free_x",scales="free_x") + 
+   geom_jitter(data=ins, aes(x=Position,y=1,color=vector),size=2,shape=25) + ylim(c(0,2)) + 
+    theme(axis.text.y=element_blank(),axis.ticks.y =element_blank(),axis.text.x= element_text(angle = 90), axis.title.y=element_blank(),axis.title.x=element_blank(),strip.background = element_blank(),panel.grid.minor = element_blank(),strip.text.y = element_text(angle=-90),panel.grid.major = element_blank(),strip.placement = "outside") 
+ 
+```
+
+### Exact insertion's positions table
+
+```{r bed.tab.view, echo =FALSE,message=FALSE}
+DT::datatable(ins)
+```
+
+### Overview of approximativ breakpoint's positions
+
+Overview of detected insertion before filtering for nearby breakpoints:
+
+```{r nofiltre_view, echo = FALSE, message = FALSE}
+
+ins.list.raw <- list()
+
+for(x in sample_sheet$sample){
+  
+  for(vector_i in perSample_vectorList[[x]]$both.list){
+    
+    file <- list.files(paste0(path_results,"/results/05_tdnascan","/",x,"/",vector_i,"/"),
+                       pattern="insertion.bed", full.names = TRUE)
+    
+    if(length(file) != 0){
+      
+      ins.list.raw[[paste0(x,"_",vector_i)]] <- read.table(file, sep="\t",h=TRUE) %>% 
+        dplyr::mutate(sample = x) %>% dplyr::mutate(vector = vector_i) 
+    }
+  }
+}
+
+ins_raw <- purrr::reduce(ins.list.raw, rbind) 
+
+if(length(ins_raw) > 0){
+  
+  ins_raw <- tidyr::separate(ins_raw,SuppRead,into=c("CLR","DIR"),sep=",")
+  ins_raw <- tidyr::separate(ins_raw,TDNA_info,into=c("tdna_st","tdna_end"),sep=",")
+  ins_raw <- dplyr::mutate(ins_raw,CLR=str_extract(CLR,pattern="(\\d)+"),
+                           DIR=str_extract(DIR,pattern="(\\d)+"),
+                           tdna_st=str_extract(tdna_st,pattern="(\\d)+"),
+                           tdna_end=str_extract(tdna_end,pattern="(\\d)+"))
+  ins_raw <- dplyr::filter(ins_raw,str_detect(Breakpoint,"~")==TRUE)
+  ins_raw <- dplyr::mutate(ins_raw,Breakpoint=as.numeric(str_remove(Breakpoint,"~")))
+  
+  names(ins_raw)<-c("Chromosome","Breakpoint","#soft.clipped","#Discordant",
+                    "tdna.start","tdna.end","orientation","insertion zygotie",
+                    "sample","vector")
+  
+  
+  
+  Chrom <- dplyr::filter(cov,rname %in% ins_raw$Chromosome) %>% dplyr::select(.,c("rname","startpos","endpos")) 
+  Chrom <- dplyr::distinct(Chrom) %>% dplyr::rename(.,Chromosome=rname)
+  
+  ggplot(data=ins_raw)+
+    geom_rect(data=Chrom, mapping = aes(xmin=startpos,xmax=endpos,ymin=0.2,ymax=0.3),color="grey")+
+    facet_grid(sample~Chromosome,space="free_x",scales="free_x") + 
+    geom_jitter(data=ins_raw, aes(x=Breakpoint,y=1,color=vector),size=2,shape=25) + ylim(c(0,2)) + 
+    theme(axis.text.y=element_blank(),axis.ticks.y =element_blank(),axis.text.x= element_text(angle = 90), axis.title.y=element_blank(),axis.title.x=element_blank(),strip.background = element_blank(),panel.grid.minor = element_blank(),strip.text.y = element_text(angle=-90),panel.grid.major = element_blank(),strip.placement = "outside", ) 
+}
+
+```
+
+### Approximativ breakpoints table
+
+Table of detected insertion before filtering for nearby breakpoints:
+
+```{r nofiltre_table, echo =FALSE,message=FALSE}
+DT::datatable(ins_raw)
+```
+
+## Informativs reads description:
+
+* This table describes informatives reads. The reads which mapped to part of the tDNA and which cover the insertion sites. 
+  + for CLR: The reads are retained if they satisfied the criterion of the difference in the number of soft clipped bases in the TDNA and in the genome (<5). See the figure below.     
+  + for DIR: The reads are retained if one mate match completly to the tDNA and the other to the genome.
+  + TSP: tdna start border 
+  + TEP: tdna end boder
+
+
+<!-- ### Results per sample -->
+
+```{r , message=FALSE, warning=FALSE, echo=FALSE}
+
+  out <- NULL
+  
+  for (sample  in  unique(sample_sheet$sample)) {
+      out <- c(out, knitr::knit_child("per_sample_ins_desc.Rmd", quiet=TRUE))  
+      
+    }
+    
+knitr::asis_output(out)
+```
+
+
+
+# Do the tdna-insertion lines have specifics Structural Variation ? 
+
+* pindel [ref] was used to detect the following structural variations.
+  + INV: Inversion (min_length=50): 
+  + DUP:TANDEM: tandem duplication
+  + INS: Insertion: Domestic insertion (DINS) of Foreign Insertion (FINS) or Translocation (TRA)
+  + DEL: Deletion
+  + RPL: Replacement: describes an insertion event around the breakpoint of a deletion event, which could in fact capture DUP, INV, DINS, FINS and TRA, thus occasionally resulting in duplicate SV calls with different assigned SV types.
+
+* NB: 
+  + pindel as a poor sensitivity to detect DINS or TRANS. It may not help to confirm tDNAscan results but may help to detect 
+other SVs that might be induced by the tDNA lines transformation.
+We will include other sv caller results such as delly to cross tdnascan results and to ensure of the lines background.
+  + SVs were classified according to their genotypes: 1/1 = homozygous for the alternate allele and 1/0 = heterozygous
+  They were not confirm thanks to igv, or by filtering allelic depth. 
+  + A filter was applied to keep SV longer than 500.
+  + A column NEXT_SV was add to indicate the distance (in base) to the next SV: it can be a common or specific one. 
+  It will help to filter sv classified in specific sv whereas they are common to samples.
+
+```{r sv,eval=TRUE, message=FALSE,echo=FALSE}
+
+pindel <- paste0(path_results,"/results/04_pindel/",path_results,"_sv.vcf.gz")
+
+# import pindel vcf
+
+if(file.exists(pindel)){
+  vcfR.inst <- vcfR::read.vcfR(pindel,verbose = FALSE)
+  
+  nsample <- dim(vcfR.inst@gt)[2]-1
+  
+  # transform to tidy
+  vcfR.tid.list <- suppressMessages(vcfR::vcfR2tidy(vcfR.inst))
+  
+  # filter SV by SVsize_CutOff 
+  sv <- vcfR.tid.list[[1]] %>% dplyr::mutate(.,ID=c(1:dim(vcfR.tid.list[[1]])[1]))
+  sv.filt <- sv[which(abs(sv$SVLEN) > SVsize_CutOff),] 
+  
+  if(dim(sv.filt)[1] > 0){
+    # filter geno by ID in sv and by GT: 1/1 or 0/1
+    geno <- vcfR.tid.list[[2]]  %>%  dplyr::mutate(.,ID=rep(c(1:dim(vcfR.tid.list[[1]])[1]),times=nsample))
+    geno.filt <-  dplyr::filter(geno,ID %in% sv.filt$ID, gt_GT %in% c("1/1","0/1")) %>% dplyr::arrange(ID)
+  }
+  
+  if(dim(geno.filt)[1] > 0){
+    geno_tmp <- geno.filt %>% dplyr::select(ID,gt_GT,Indiv,ID) %>% tidyr::pivot_wider(names_from=Indiv,values_from=gt_GT)
+    
+    SV <- dplyr::left_join(geno_tmp ,sv.filt,by="ID")  %>% dplyr::arrange(ID) %>% dplyr::mutate(.,SVTYPE=as.factor(SVTYPE)) %>%  dplyr::select(.,ID,CHROM,POS,END,SVLEN,SVTYPE,contains(".bam")) %>% dplyr::mutate(.,DIST_NEXTSV=c(diff(POS),NA))
+    
+    tmp <- dplyr::select(SV,contains(".bam"))
+    SV$SPEC <- rowSums(apply(! is.na(tmp),2,as.numeric))
+  }
+}
+```
+
+## Overview of SV repartition on chromosoms:
+
+
+```{r SV_overview, echo=FALSE}
+Chrom <- dplyr::filter(cov,rname %in% SV$CHROM) %>% dplyr::select(.,c("rname","startpos","endpos")) 
+Chrom <- dplyr::distinct(Chrom) %>% dplyr::rename(.,CHROM=rname)
+    
+ ggplot(data=SV)+
+     geom_rect(data=Chrom, mapping = aes(xmin=startpos,xmax=endpos,ymin=0,ymax=0.1),color="grey")+
+     facet_grid(CHROM ~.,space="free_x",scales="free_x") + 
+   geom_jitter(data=SV, aes(x=POS,y=1,color=as.factor(SPEC)),size=2,shape=25) + ylim(c(0,2)) + xlab("Positions") + 
+    theme(axis.text.y=element_blank(),axis.ticks.y =element_blank(),axis.text.x= element_text(angle = 90), axis.title.y=element_blank(),axis.title.x=element_blank(),strip.background = element_blank(),panel.grid.minor = element_blank(),strip.text.y = element_text(angle=-90),panel.grid.major = element_blank(),strip.placement = "outside")+
+          scale_colour_discrete(name  = "Number of \n samples per SV") 
+
+```
+
+## Common SV {.tabset}
+
+### summary of common SV 
+
+```{r commonsv_sum,eval=TRUE, message=FALSE,echo=FALSE}
+sv_common <- dplyr::filter(SV, SPEC !=1 )
+sv_common %>% group_by(CHROM,SVTYPE) %>% count() %>% ggplot() + geom_bar(aes(x=CHROM,y=n,fill=SVTYPE),stat="identity") + scale_fill_manual(values=c("lightsalmon","royalblue1","green","magenta1","yellow"),drop=FALSE) + xlab("Chromosoms")
+```
+
+### table
+
+```{r commonsv_tab,eval=TRUE, message=FALSE,echo=FALSE}
+DT::datatable(sv_common)
+```
+
+## Specific SV per sample:
+
+
+<!-- ### Results per sample -->
+
+```{r , message=FALSE, warning=FALSE, echo=FALSE}
+
+  out <- NULL
+  
+  for (sample  in  unique(sample_sheet$sample)) {
+      out <- c(out, knitr::knit_child("per_sample_sv_desc.Rmd", quiet=TRUE))  
+      
+    }
+    
+knitr::asis_output(out)
+```
