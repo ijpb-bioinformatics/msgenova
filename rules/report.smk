@@ -99,12 +99,18 @@ rule extract_flagstat:
 			done
 		"""
 
+#		
+
+
+# list.append("results/04_delly/"+NAME_PROJECT+"_sv_delly.vcf.gz")
+
 def get_input_report(wildcards):
 	list=[]
 	list.append("results/01_sequence_qc/"+NAME_PROJECT+"_multiqc_trim.html")
 	list.extend(expand("results/02_mapping/depth/{s.sample}.depth",s=SAMPLE.itertuples()),)
 	list.extend(expand("results/02_mapping/coverage/{s.sample}.coverage",s=SAMPLE.itertuples()),)
 	list.extend(expand("results/02_mapping/flagstat/{s.sample}.flagstat",s=SAMPLE.itertuples()),)
+	list.extend(expand("results/04_delly/{s.sample}.vcf.gz",s=SAMPLE.itertuples()),)
 	list.append("results/02_mapping/flagstat/concatenate_flagstat.txt")
 	list.append("results/00_logs/sample_sheet")
 	list.append("results/01_sequence_qc/log/trimmomatic.log")
