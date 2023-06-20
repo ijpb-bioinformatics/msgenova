@@ -4,30 +4,55 @@ author: " "
 date: "2022-08-16"
 output:
     html_document:
-        highlight: tango
-        number_sections: no
-        theme: default
-        toc: yes
-        toc_depth: 3
-        toc_float:
-            collapsed: no
-            smooth_scroll: yes
+        number_sections: yes
 params:
   DP.min: DP.min
   AR.min: AR.min
+  qual.min: qual.min
   result_dir: result_dir
+  sample_sheet: sample_sheet
   rmd: "report.Rmd"
   AR: AR
 ---
 
+
 ```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE , warning=FALSE, error=FALSE, message=FALSE)
+```
+
+```{r}
 # title: "`r params$title`"
-workspace <- "/Users/nbentahar/Documents/PROJECTs/DEV/msgenova/examples/soj/results/"
-#workspace<-params$result_dir
+# workspace<-params$result_dir
+# sample_sheet.file <- params$sample_sheet
+# DP.min <- params$DP.min
+# AR.min <- params$AR.min
+# qual.min <- params$qual.min
 
-sample_sheet.file <- "/Users/nbentahar/Documents/PROJECTs/DEV/msgenova/examples/soj/sample_sheet_soj_3samples.txt"
+projectName <- "PE-WGS"
 
-knitr::opts_chunk$set(root.dir=workspace, echo = FALSE , warning=FALSE, error=TRUE, message=FALSE)
+workspace <- "/Users/nbentahar/Desktop/msgenova_test/PE_WGS/results"
+#workspace <- "/Users/nbentahar/Documents/PROJECTs/DEV/msgenova/examples/soj/results/"
+
+sample_sheet.file <- "/Users/nbentahar/Desktop/msgenova_test/PE_WGS/sample_sheet_PE.txt"
+#sample_sheet.file <- "/Users/nbentahar/Documents/PROJECTs/DEV/msgenova/examples/soj/sample_sheet_soj_3samples.txt"
+
+DP.min <- 4
+AR.min <- 0.8
+qual.min <- 30
+
+# results
+trim.file <- paste0(workspace,"/01_sequence_qc/log/trimmomatic.log")
+vcf.file <- paste0(workspace,"/03_snv_indels_calling/", projectName , "_snv_indel.vcf")
+sv.file  <- paste0(workspace,"/04_sv_calling/", projectName , "_sv.vcf")
+
+if(!file.exists(sample_sheet.file)) stop("Error: ")
+if(!file.exists(trim.file)) stop("Error: ")
+if(!file.exists(vcf.file)) stop("Error: ")
+
+eval.SV <- file.exists(sv.file)
+
+
+  
 ```
 
 
@@ -36,32 +61,52 @@ library(DT)
 library(ggplot2)
 library(vcfR)
 library(dplyr)
+library(tidyr)
 library(yaml)
+library(stringr)
+library(ComplexHeatmap)
+library(gplots)
+source("functions.R")
+
 
 ```
 
 
+
+# Samples
 ```{r}
 
 sample_sheet <- read.table(file = sample_sheet.file, header = TRUE, sep = "\t")
 
+unique(sample_sheet$sample)
+```
+List of samples : `r unique(sample_sheet$sample)`
+
+```{r}
+
+dplyr::select(sample_sheet, sample, condition) %>% unique() %>% dplyr::group_by(condition) %>% dplyr::count(name = "nb_samples") %>% 
+  knitr::kable(align = "lccrr")
+ # DT::datatable(rownames = FALSE, options = list(rownames = TRUE, pageLength = 10, scrollX = T, dom = 'tip'),class = 'cell-border stripe')
+
 ```
 
 
-```{r quality_control.Rmd}
+
+<!-- # Quality control -->
+
+```{r quality_control}
 
   out <- NULL
 
   out <- c(out, knitr::knit_child("quality_control.Rmd"), quiet=TRUE)
     
-knitr::asis_output(out)
+  knitr::asis_output(out)
 
 ```
 
+<!-- # SNV and Small InDels Detection -->
 
-```{r SNV_InDels_calling.Rmd, eval=FALSE}
-
-vcf.file <- "/Users/nbentahar/Documents/PROJECTs/DEV/msgenova/examples/soj/results/03_snv_indels_calling/SOJ_snv_indel.vcf"
+```{r SNV_InDels_calling}
 
   out <- NULL
 
@@ -71,8 +116,9 @@ knitr::asis_output(out)
 
 ```
 
+<!-- # SV Detection -->
 
-```{r SV_calling.Rmd, eval=FALSE}
+```{r SV_calling, eval=eval.SV}
 
   out <- NULL
 
@@ -82,7 +128,7 @@ knitr::asis_output(out)
 
 ```
 
-```{r tDNA_scan.Rmd, eval=FALSE}
+```{r tDNA_scan, eval=FALSE, include=FALSE}
 
   out <- NULL
 

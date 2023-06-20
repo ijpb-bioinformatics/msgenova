@@ -1,80 +1,102 @@
-## Trimming parameters
+
+# Quality control
+## Read quality
+
+<!-- <details> -->
+<!--     <summary> multiqc report </summary> -->
+
+<!-- ```{r multiqc} -->
+
+<!-- htmltools::includeHTML(paste0(workspace,"/01_sequence_qc/SOJ_multiqc_trim.html")) -->
+
+<!-- ``` -->
+<!-- </details> -->
+
+
+### Read cleaning :
+
+Sequences were trimmed with Trimmomatic tools...
 
 ```{r trimmomatic}
-trimmo<-paste0(workspace,"/01_sequence_qc/log/trimmomatic.log")
-dat<-read.table(text=gsub(" ","\t",readLines(trimmo)),  header=TRUE)
-DT::datatable(dat)
+trimmo <- paste0(workspace,"/01_sequence_qc/log/trimmomatic.log")
+dat    <- read.table(text = gsub(" ","\t",readLines(trimmo)),  header=TRUE)
+DT::datatable(dat,  rownames = FALSE, caption = "Read cleaning results",
+              options = list(rownames = TRUE, pageLength = 10, scrollX = T, dom = 'tip'),class = 'cell-border stripe')
 ```
 
-## HTML
 
 
-## Mapping parameters
+## Alignement
 
-### Flagstat results
+Sequences were aligned using BWA MEM (v?) ...
 
-```{r }
+### Mapping rate
 
+```{r mapping rate}
 file <- paste0(workspace,"/02_mapping/flagstat/concatenate_flagstat.txt")
 if(file.exists(file)){
-    flagstat <- read.table(file, sep="\t", header=FALSE) %>% 
-      dplyr::mutate(mapped=V3-V4, unmapped=V2-V3, supplementary=V4, 
-                    mapped.ratio=round(mapped/(mapped+unmapped)*100,2), 
-                    unmapped.ratio=round(unmapped/(mapped+unmapped)*100,2),
-                    supplementary.ratio=round(supplementary/(mapped+unmapped)*100,2)) %>% dplyr::select(-V2, -V3, -V4)
-    names(flagstat) <- c("sample", "mapped", "unmapped", "supplementary", "mapped.ratio", "unmapped.ratio", "supplementary.ratio")
+    flagstat <- read.table(file, sep="\t", header=FALSE) %>%
+      dplyr::mutate(mapped=V3-V4, mapped.ratio=round(mapped/(V2)*100,2)) %>% dplyr::select(-V3, -V4)
+    names(flagstat) <- c("sample", "raw", "mapped", "mapped.ratio")
 
-  } 
+  }
 
-DT::datatable(flagstat, options = list(rownames = TRUE, pageLength = 10, scrollX = T, dom = 'tip'),class = 'cell-border stripe')
+DT::datatable(flagstat, options = list(rownames = TRUE, pageLength = 10, scrollX = T, dom = 'tip'),class = 'cell-border stripe',
+              rownames = FALSE, caption = "???")
+
+```
+
+```{r}
 
 #count
-nbr.reads.melt <- flagstat %>% dplyr::select(sample, mapped, unmapped, supplementary) %>% reshape2::melt(id = "sample", value.name = "nbr.reads")
+nbr.reads.melt <- flagstat %>% dplyr::select(sample, raw, mapped, mapped.ratio) %>% reshape2::melt(id = "sample", value.name = "nbr.reads")
 
-p <- ggplot(data = nbr.reads.melt, aes(y=nbr.reads, x=variable)) + geom_boxplot()  + 
-  xlab("") + ylab("number of reads") + ggtitle("Boxplot representing the number of mapped/supplementary/unmapped reads")+theme_bw()
+# p <- ggplot(data = dplyr::filter(nbr.reads.melt, variable == "mapped.ratio"), aes(y=nbr.reads, x=variable)) + geom_boxplot()  +
+#   xlab("") + ylab("% reads") + ggtitle("...")
+# 
+# print(p)
+# 
+# p <- ggplot(data = dplyr::filter(nbr.reads.melt, variable %in% c("raw", "mapped")), aes(y=nbr.reads, x=variable)) + geom_boxplot()  +
+#   xlab("") + ylab("number of reads") + ggtitle("...")+theme_bw()
+# 
+# print(p)
 
-print(p)
-
-#ratio
-ratio.reads.melt <- flagstat %>% dplyr::select(sample, mapped.ratio, supplementary.ratio) 
-names(ratio.reads.melt) <- c("sample", "mapped", "supplementary")
-
-ratio.reads.melt <- ratio.reads.melt %>% reshape2::melt(id = "sample", value.name = "ratio")
-
-summary.ratio <- ratio.reads.melt %>% group_by(variable) %>% 
-  summarise( median=round(median(ratio),2), max=round(max(ratio),2), min=round(min(ratio),2))
-
-p <- ggplot(data = ratio.reads.melt) + geom_boxplot(aes(y=ratio, x=variable)) + 
-  xlab("") + ylab("% reads") + scale_y_continuous(breaks = seq(0, max(ratio.reads.melt$ratio)+10, 20)) + 
-  ggtitle("Boxplot representing the percentage of mapped reads and supplementary alignments")+theme_bw()
+p <- ggplot(data = dplyr::filter(nbr.reads.melt, variable %in% c("mapped.ratio", "mapped")), aes(x=nbr.reads, y=variable)) + geom_boxplot()  +
+  xlab("") + ylab("") + ggtitle("Mapped reads per samples") + facet_wrap(variable~., scales = "free", ncol = 1) +
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) 
 
 print(p)
 
 ```
 
 
-### Coverage analysis
-```{r coverage}
+### Coverage
+
+```{r depth}
+
 cov.list <- lapply(sample_sheet$sample, function(x){
   file <- paste0(workspace,"/02_mapping/coverage/", x, ".coverage")
   if(file.exists(file)){
-    
+
     read.table(file, sep="\t") %>%  dplyr::filter(V4 > 1)  %>% dplyr::mutate(sample = x)
   }
 })
 
-cov <- purrr::reduce(cov.list, rbind) %>% dplyr::mutate(nbr_reads=dplyr::if_else(V4 >= 15, ">15X", "<15X"))
-colnames(cov) <- c("rname",	"startpos",	"endpos",	"numreads",	"covbases",	"coverage",	"meandepth",	"meanbaseq",	"meanmapq", "sample", "nbr_reads")
-#cov <- cov %>% left_join(bed.tab, by=c("rname","startpos"="start","endpos"="stop")) 
-#cov.summary <- cov %>% group_by(rname) %>% summarise(min=min(numreads), max=max(numreads), median=round(median(numreads)))
-#cov <- left_join(cov, cov.summary, by = c("rname") )%>% mutate(x.label=paste0(rname, "\nmedian=", median, "\nmax=", max, "\nmin=", min)) 
+cov <- purrr::reduce(cov.list, rbind)
+colnames(cov) <- c("rname",	"startpos",	"endpos",	"numreads",	"covbases",	"coverage",	"meandepth",	"meanbaseq",	"meanmapq", "sample")
+cov$coverage <- round(cov$coverage, 2)
 
-p <-ggplot(data = cov) + geom_boxplot(aes(y=meandepth, x=rname)) + 
-  xlab("") + ggtitle("Plot coverage")  + 
-  theme(axis.text.x=element_text(angle=90,hjust=1))+theme_bw()
+p <-ggplot(data = cov) + geom_boxplot(aes(x=meandepth, y=rname)) + xlab("depth (X)") + ylab("") + ggtitle("Depth of coverage mean per samples") +
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) + 
+  facet_wrap(rname~., scales = "free")
+
+print(p)
+
+p <-ggplot(data = cov) + geom_boxplot(aes(x=coverage, y=rname)) +  ylab("") + xlab("Coverage (%)") + ggtitle("Propotion of covered bases per sample") +
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) + scale_x_continuous(labels=function(x){sprintf("%.2f", x)}) + facet_wrap(rname~., scales = "free")
 
 print(p)
 
 ```
+
 
