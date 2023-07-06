@@ -18,21 +18,28 @@ params:
   qual.min: qual.min
   result_dir: result_dir
   sample_sheet: sample_sheet
+  projectName : projectName
   rmd: "report.Rmd"
   AR: AR
 ---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE , warning=FALSE, error=FALSE, message=FALSE, out.width="70%", fig.show="hold")
+```
 
 
 ```{r}
 # title: "`r params$title`"
 workspace <-params$result_dir
 sample_sheet.file <- params$sample_sheet
-# DP.min <- params$DP.min
-# AR.min <- params$AR.min
-# qual.min <- params$qual.min
-
+DP.min <- params$DP.min
+AR.min <- params$AR.min
+qual.min <- params$qual.min
+projectName <- params$projectName
 #Genome.file <- "/save/project/ijpb/bank/GENOME/Ppatens-patens-v3.3-WG/Ppatens-patens-v3.3-WG.fa"
-projectName <- "PE-WGS"
+#projectName <- "PE-WGS"
 
 #workspace <- "/Users/nbentahar/Desktop/msgenova_test/PE_WGS/results"
 #workspace <- "/Users/nbentahar/Documents/PROJECTs/DEV/msgenova/examples/soj/results/"
@@ -40,15 +47,10 @@ projectName <- "PE-WGS"
 #sample_sheet.file <- "/Users/nbentahar/Desktop/msgenova_test/PE_WGS/sample_sheet_PE.txt"
 #sample_sheet.file <- "/Users/nbentahar/Documents/PROJECTs/DEV/msgenova/examples/soj/sample_sheet_soj_3samples.txt"
 
-DP.min <- 4
-AR.min <- 0.8
-qual.min <- 30
+# DP.min <- 4
+# AR.min <- 0.8
+# qual.min <- 30
 nbr.alt.min <- 3
-```
-
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo=FALSE , warning=FALSE, error=FALSE, message=FALSE, out.width="70%", fig.show="hold")
 ```
 
 
