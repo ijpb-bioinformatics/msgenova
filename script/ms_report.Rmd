@@ -1,223 +1,448 @@
 ---
-title: "MSGenova (Clean version) Rmakrdown Report"
-author: "Gabrièle Adam"
+title: "Report"
+author: " "
 date: "2022-08-16"
 output:
     html_document:
         highlight: tango
-        number_sections: no
+        number_sections: yes
         theme: default
         toc: yes
         toc_depth: 3
         toc_float:
-            collapsed: no
+            collapsed: yes
             smooth_scroll: yes
 params:
   DP.min: DP.min
   AR.min: AR.min
+  qual.min: qual.min
   result_dir: result_dir
+  sample_sheet: sample_sheet
+  projectName : projectName
   rmd: "report.Rmd"
+  AR: AR
 ---
 
+
+
 ```{r setup, include=FALSE}
-workspace<-params$result_dir
-knitr::opts_chunk$set(root.dir=workspace, echo = FALSE , warning=FALSE, error=FALSE, message=FALSE)
+knitr::opts_chunk$set(echo=FALSE , warning=FALSE, error=FALSE, message=FALSE, out.width="70%", fig.show="hold")
 ```
 
-```{r load_library, echo=FALSE, warning=FALSE, error=FALSE}
-library(tidyverse)
+
+```{r}
+# title: "`r params$title`"
+workspace <-params$result_dir
+sample_sheet.file <- params$sample_sheet
+DP.min <- params$DP.min
+AR.min <- params$AR.min
+qual.min <- params$qual.min
+projectName <- params$projectName
+#Genome.file <- "/save/project/ijpb/bank/GENOME/Ppatens-patens-v3.3-WG/Ppatens-patens-v3.3-WG.fa"
+#projectName <- "PE-WGS"
+
+#workspace <- "/Users/nbentahar/Desktop/msgenova_test/PE_WGS/results"
+#workspace <- "/Users/nbentahar/Documents/PROJECTs/DEV/msgenova/examples/soj/results/"
+
+#sample_sheet.file <- "/Users/nbentahar/Desktop/msgenova_test/PE_WGS/sample_sheet_PE.txt"
+#sample_sheet.file <- "/Users/nbentahar/Documents/PROJECTs/DEV/msgenova/examples/soj/sample_sheet_soj_3samples.txt"
+
+# DP.min <- 4
+# AR.min <- 0.8
+# qual.min <- 30
+nbr.alt.min <- 3
+```
+
+
+```{r}
+#libraries
 library(DT)
 library(ggplot2)
-library(plyr)
+library(vcfR)
 library(dplyr)
+library(tidyr)
 library(yaml)
-vector_calling<-params$vector
+library(stringr)
+library(ComplexHeatmap)
+library(dendextend) 
+library(GenomicRanges)
+library(gplots)
+source("functions.R")
+```
 
-DP.min<-5
-AR.min<-0.2
+# Objective
 
-sheet<-params$sample
-trimmo<- params$trimmo
-flagstat<- params$flagstat
-haplotype_caller<- params$haplotype_caller
 
-config_advanced_file<-paste0(workspace,"/00_logs/config_advanced")
-config_ad<-read_yaml(config_advanced_file)
+
+# Input data
+## Genome version
+```{r, eval=FALSE}
+print(basename(Genome.file))
 ```
 
 
-## Trimming parameters
+## Samples
+```{r}
+# error message if sample sheet not exist
+if(!file.exists(sample_sheet.file)) stop("Error: ")
 
-```{r trimmomatic}
-trimmo<-paste0(workspace,"/01_sequence_qc/log/trimmomatic.log")
-dat<-read.table(text=gsub(" ","\t",readLines(trimmo)),  header=TRUE)
-DT::datatable(dat)
+# read sample sheet
+sample_sheet <- read.csv(file = sample_sheet.file, header = TRUE, sep = "\t")
 ```
 
-## Mapping parameters
+```{r}
+sampleNames <- unique(sample_sheet$sample)
+```
 
-### Flagstat results
+```
+List of samples : `r sampleNames`
+```
 
-```{r flagstat}
-library(tidyverse)
-file <- paste0(workspace,"/02_mapping/flagstat/concatenate_flagstat.txt")
-if(file.exists(file)){
-    flagstat <- read.table(file, sep="\t", header=FALSE) %>% 
-      dplyr::mutate(mapped=V3-V4, unmapped=V2-V3, supplementary=V4, 
-                    mapped.ratio=round(mapped/(mapped+unmapped)*100,2), 
-                    unmapped.ratio=round(unmapped/(mapped+unmapped)*100,2),
-                    supplementary.ratio=round(supplementary/(mapped+unmapped)*100,2)) %>% dplyr::select(-V2, -V3, -V4)
-    names(flagstat) <- c("sample", "mapped", "unmapped", "supplementary", "mapped.ratio", "unmapped.ratio", "supplementary.ratio")
+```{r list samples}
 
-  } 
+dplyr::select(sample_sheet, sample, condition) %>% unique() %>% 
+  dplyr::group_by(condition) %>% dplyr::count(name = "nb_samples") %>% 
+  DT::datatable(rownames = FALSE, options = list(rownames = TRUE, pageLength = 6, scrollX = T, dom = 'tip'),
+                class = 'cell-border stripe', caption = "List of conditions")
 
-DT::datatable(flagstat, options = list(rownames = TRUE, pageLength = 10, scrollX = T, dom = 'tip'),class = 'cell-border stripe')
+```
+
+# MsGenoVa workflow
+
+![alt text here](workflow.png)
+
+# Sequence trimming step
+
+Sequences were trimmed with Trimmomatic tools...
+
+```{r trimming stat}
+trim.file <- paste0(workspace,"/01_sequence_qc/log/trimmomatic.log")
+if(!file.exists(trim.file)) stop("Error: ")
+
+read.table(text = gsub(" ","\t",readLines(trim.file)),  header=TRUE) %>%
+  DT::datatable(rownames = FALSE, caption = "Read cleaning results",
+                options = list(rownames = TRUE, pageLength = 6, scrollX = T, dom = 'tip'),
+                class = 'cell-border stripe')
+
+```
+
+# Mapping step
+
+Sequences were aligned using BWA MEM (v?) ...
+
+```{r mapping step}
+map.file <- paste0(workspace,"/02_mapping/flagstat/concatenate_flagstat.txt")
+if(!file.exists(map.file)) stop("Error: ")
+```
+
+
+## Mapping rate
+
+```{r mapping rate}
+flagstat.file <- paste0(workspace,"/02_mapping/flagstat/concatenate_flagstat.txt")
+if(file.exists(flagstat.file)){
+    flagstat <- read.table(flagstat.file, sep="\t", header=FALSE) %>%
+      dplyr::mutate(mapped.reads=V3-V4, mapped.read.ratio=round(mapped.reads/(V2)*100,2)) %>% dplyr::select(-V3, -V4)
+    names(flagstat) <- c("sample", "raw.reads", "mapped.reads", "mapped.read.ratio")
+
+  }
+
+
 #count
-nbr.reads.melt <- flagstat %>% dplyr::select(sample, mapped, unmapped, supplementary) %>% reshape2::melt(id = "sample", value.name = "nbr.reads")
-summary.nbr <- nbr.reads.melt %>% group_by(variable) %>% summarise(median=median(nbr.reads), max=max(nbr.reads), min=min(nbr.reads))
-nbr.reads.melt <- left_join(nbr.reads.melt, summary.nbr, by = "variable") %>% mutate(x.label=paste0(variable, "\nmedian=", median, "\nmax=", max, "\nmin=", min))
-ggplot(data = nbr.reads.melt, aes(y=nbr.reads, x=x.label)) + geom_boxplot()  + xlab("") + ylab("number of reads") + ggtitle("Boxplot representing the number of mapped/supplementary/unmapped reads")+theme_bw()
-#ratio
-ratio.reads.melt <- flagstat %>% dplyr::select(sample, mapped.ratio, supplementary.ratio) 
-names(ratio.reads.melt) <- c("sample", "mapped", "supplementary")
-ratio.reads.melt <- ratio.reads.melt %>% reshape2::melt(id = "sample", value.name = "ratio")
-summary.ratio <- ratio.reads.melt %>% group_by(variable) %>% summarise( median=round(median(ratio),2), max=round(max(ratio),2), min=round(min(ratio),2))
-ratio.reads.melt <- left_join(ratio.reads.melt, summary.ratio, by = "variable") %>% mutate(x.label=paste0(variable, "\nmedian=", median, "%\nmax=", max, "%\nmin=", min, "%"))
-ggplot(data = ratio.reads.melt) + geom_boxplot(aes(y=ratio, x=x.label)) + xlab("") + ylab("% reads") + scale_y_continuous(breaks = seq(0, max(ratio.reads.melt$ratio)+10, 20)) + ggtitle("Boxplot representing the percentage of mapped reads and supplementary alignments")+theme_bw()
+nbr.reads.melt <- flagstat %>% dplyr::mutate(xlabel=paste0(sample, "(", mapped.read.ratio, "%)"), unmapped.reads=raw.reads-mapped.reads) %>% 
+  dplyr::select(mapped.reads, unmapped.reads, xlabel) %>%
+  reshape2::melt(id = "xlabel", value.name = "nbr.reads")
 
 ```
 
-### Coverage analysis
-```{r coverage}
+
+```{r mapping rate plot}
+p <- ggplot(data = nbr.reads.melt) + geom_col(aes(y=xlabel, x=nbr.reads, fill=variable)) + 
+  labs(x="nb of reads", y="samples (mapping rate %)", fill="")
+
+print(p)
+```
+
+
+```{r mapping rate summary}
+DT::datatable(flagstat, options = list(rownames = TRUE, pageLength = 6, scrollX = T, dom = 'tip'),
+              class = 'cell-border stripe', rownames = FALSE, caption = "")
+```
+
+
+## Mapping coverage
+
+```{r mapping coverage}
 cov.list <- lapply(sample_sheet$sample, function(x){
   file <- paste0(workspace,"/02_mapping/coverage/", x, ".coverage")
   if(file.exists(file)){
-    
+
     read.table(file, sep="\t") %>%  dplyr::filter(V4 > 1)  %>% dplyr::mutate(sample = x)
   }
 })
 
-cov <- purrr::reduce(cov.list, rbind) %>% dplyr::mutate(nbr_reads=dplyr::if_else(V4 >= 15, ">15X", "<15X"))
-colnames(cov) <- c("rname",	"startpos",	"endpos",	"numreads",	"covbases",	"coverage",	"meandepth",	"meanbaseq",	"meanmapq", "sample", "nbr_reads")
-#cov <- cov %>% left_join(bed.tab, by=c("rname","startpos"="start","endpos"="stop")) 
-cov.summary <- cov %>% group_by(rname) %>% summarise(min=min(numreads), max=max(numreads), median=round(median(numreads)))
-cov <- left_join(cov, cov.summary, by = c("rname") )%>% mutate(x.label=paste0(rname, "\nmedian=", median, "\nmax=", max, "\nmin=", min)) 
-for (i in unique(sample_sheet$sample)){
-cat("####",i,"\n")
-g<-ggplot(filter(cov,sample==i)) + geom_boxplot(aes(y=numreads, x=x.label)) + xlab("") + ylab("#reads") + ggtitle("Plot coverage")+facet_wrap(. ~ sample,scales = "free")+theme(axis.text.x=element_text(angle=90,hjust=1))+theme_bw()
-print(g)
-cat('\n\n')
-}
+cov <- purrr::reduce(cov.list, rbind)
+colnames(cov) <- c("rname",	"startpos",	"endpos",	"numreads",	"covbases",	"coverage(%)",	"meandepth(X)",	"meanbaseq",	"meanmapq", "sample")
+cov$coverage <- round(cov$coverage, 2)
+
+cov <- cov %>% mutate(xlabel=paste0(rname, "(", endpos-startpos, ")")) %>% 
+  dplyr::filter(!stringr::str_detect(stringr::str_to_lower(rname), pattern = "scaffold")) %>%
+  dplyr::filter(!stringr::str_detect(stringr::str_to_lower(rname), pattern = "chloroplast")) %>%
+  dplyr::filter(!stringr::str_detect(stringr::str_to_lower(rname), pattern = "mitochondria"))
 ```
 
-### Depth analysis
-```{r depth_analysis}
-cov.list <- lapply(sample_sheet$sample, function(x){
 
-  file <- paste0(workspace,"/02_mapping/depth/", x, ".depth")
-  if(file.exists(file)){
-    read.table(file, sep="\t")  %>% dplyr::mutate(plant = x)
-  }
-})
+```{r mapping coverage plot}
+p <- select(cov, rname, `meandepth(X)`, `coverage(%)`, sample, xlabel) %>% reshape2::melt(id = c("rname", "sample", "xlabel")) %>% 
+  ggplot() + geom_boxplot(aes(x=value, y=xlabel)) + 
+  xlab("") + ylab("chromosome names (size bp)") + 
+  facet_grid(~variable, scales = "free")
 
-depth <- purrr::reduce(cov.list, rbind)
-colnames(depth) <- c("rname", "position", "depth", "sample")
-#depth <- depth %>% left_join(bed.tab, by="rname")  %>% filter(position >=start, position <= stop)
-heading<-as.character(unique(sample_sheet$sample))
-for (i in unique(cov$rname)){
- cat("####",i,"\n")
-  p <- ggplot(data = filter(depth,rname== i)) + geom_line(aes(x=position, y=depth, color=sample))   + theme(legend.position="none", axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ylab("Depth of coverage")+facet_grid(~rname, scales = "free") 
-  print(p)
-cat('\n\n')
-}
+print(p)
+```
+```{r mapping coverage summary}
+cov %>% dplyr::select(sample, rname, `meandepth(X)`, `coverage(%)`) %>% 
+  DT::datatable(rownames = FALSE, caption = "",
+                options = list(rownames = TRUE, pageLength = 6, scrollX = T, dom = 'tip'),
+                class = 'cell-border stripe')
+```
+
+
+# Small variant calling step (GATK)
+```{r}
+vcf.file <- list.files(path = paste0(workspace,"/03_snv_indels_calling"), pattern = "_snv_indel.vcf" , full.names = T)
+if(!file.exists(vcf.file)) stop("Error: ")
+```
+
+
+
+```{r}
+
+vcfR <- vcfR::read.vcfR(vcf.file, verbose = FALSE)
+
+vcfR.tb.list <- vcfR::vcfR2tidy(vcfR, verbose = FALSE, info_fields = c("AC","MQ", "ANN"), 
+                                                     format_fields = c("Indiv", "AD", "DP"))
+
+vcfR.tb <- dplyr::full_join(vcfR.tb.list$fix, vcfR.tb.list$gt, by = c("ChromKey", "POS"))
+rm(vcfR.tb.list)
+
+# split multiallelic variants + add columns  with var type information
+variants.gatk <- vcfR_split_multiAlt(vcfR.tb, nbrAlt = 2) 
+
+variants.gatk <- variants.gatk %>%
+  tidyr::separate(gt_AD, c("gt_ref_AD", "gt_alt_AD"), sep = ",") %>%
+  dplyr::mutate(gt_AR = dplyr::if_else(gt_DP == 0 | is.na(gt_DP), NA, as.numeric(gt_alt_AD)/gt_DP),
+                var_length = str_length(ALT) - str_length(REF) + 1,
+                var_type   = dplyr::if_else(var_length == 1, "SNV", 
+                             dplyr::if_else(var_length  < 1, "DEL", "INS")),
+                ID = paste(CHROM, POS, REF, ALT, sep = "_"), tools = "GATK")
+
+variants.gatk <- variant.freq(variants.gatk)
 
 ```
 
-```{r proportion_of, results='asis',echo=FALSE, eval=FALSE, warning=FALSE, error=FALSE,results=FALSE}
-for (i in unique(bed.tab$target)){
- cat("####",i,"\n")
-tmp <- cov  %>% filter(target== i) %>% group_by(nbr_reads, target, amplicon) %>% count(name = "#well") 
-g1<-ggplot(data = tmp) + geom_bar(aes(x=amplicon, y=`#well`, fill=nbr_reads), stat = "identity") + xlab("") +facet_grid(~target, scales = "free")
-g2<-cov %>% filter(target== i) %>% group_by(well, nbr_reads,target) %>% count(name = "amplicon") %>% filter(nbr_reads == ">15X") %>% group_by(amplicon,target) %>% count(name = "#well") %>% ggplot(aes(x = amplicon, y = `#well`)) + geom_bar(stat = "identity") + xlab("nbr of amplicon covered at >15X")
-print(g1)
-print(g2)
-cat('\n\n')
-}
+## Variant calling quality control
+
+### Score quality
+
+```{r out.width="60%", fig.show="hold"}
+# Score de qualité
+p <- variants.gatk %>% select(ID, QUAL) %>% unique() %>% ggplot() + geom_density(aes(QUAL)) + xlim(0,200) +
+  xlab("quality score") + geom_vline(xintercept = qual.min, color = "red") + ggtitle("Variant quality score distribution")
+print(p)
+
 ```
 
-## Study of SNV and Indels calling
+### Variant coverage
 
-```{r define_r_fct_multiallele, echo=FALSE}
-vcfR_split_multiAlt <- function(vcfR.tid, nbrAlt=NULL){
+```{r out.width="50%", fig.show="hold"}
+vcf.tbl.g   <- dplyr::filter(variants.gatk,   gt_AR != 0, !is.na(gt_AR))
 
-  vcfR.tid.tmp <- 
-    dplyr::mutate(vcfR.tid, nb.allele=unlist(lapply(str_split(string = vcfR.tid$gt_AD, pattern = ","), function(x){return(length(x))}))) %>%
-    dplyr::mutate(nb.allele=nb.allele-1)
+# distribution de la couverture des positions variantes
+p <- ggplot(data=vcf.tbl.g) + geom_density(aes(x=gt_DP, color=Indiv)) + xlim(0,50) +
+  ylab("DP of variants") + geom_vline(xintercept = DP.min, color = "red") + ggtitle("Variant depth of coverage distribution")
+if (length(unique(vcf.tbl.g$Indiv)) > 15){
+  p <- p + theme(legend.position="none")
+}
+
+print(p)
+
+# Distribution de l'allèle ratio
+p <- ggplot(data=vcf.tbl.g) + geom_density(aes(gt_AR, color=Indiv)) + 
+  xlab("Alternative allele ratio") + xlim(0,1) + geom_vline(xintercept = AR.min, color = "red")+ ggtitle("Variant allele ratio distribution")
+
+if (length(unique(vcf.tbl.g$Indiv)) > 15){
+  p <- p + theme(legend.position="none")
+}
+
+print(p)
+
+```
+
+```{r out.width="60%", fig.show="hold"}
+NA_ID <- filter(variants.gatk, nb_NA > 0)$ID
+
+variants.gatk %>% filter(ID %in% NA_ID) %>% 
+  ggplot() +  geom_bar(aes(x=as.factor(nb_NA))) + 
+  theme(axis.text.x = element_text(angle = 90, size = rel(0.8), hjust = 0)) + xlab("nb of samples") + 
+  ylab("Non covered positions") + ggtitle("Non covered variant positions")
+
+
+```
+
+
+### Low quality variant filtering
+
+* score de qualité : > `r qual.min`
+* nombre de reads qui couvrent la position variant : > `r DP.min`
+* nombre de reads qui portent l'allèle alternatif : > 1
+* min AR : `r AR.min`
+* retirer les positions avec au moins un échantillon non couvert.
+
+```{r}
+# remove 
+variants.gatk.flt <- variants.gatk %>% 
+  dplyr::mutate(gt_alt_AD = dplyr::if_else(as.numeric(gt_alt_AD) < 2, 0, as.numeric(gt_alt_AD)),
+                gt_AR     = dplyr::if_else(gt_DP == 0 | is.na(gt_DP), NA, as.numeric(gt_alt_AD)/gt_DP)) %>% 
+  dplyr::filter(!is.na(gt_DP), gt_DP >= DP.min, QUAL >= qual.min, nb_NA == 0, freq_ho == freq)
+
+```
+
+## Descriptive stat of variants
+
+### variant count per sample
+
+```{r }
+
+vcf.tbl.q.g <- filter(variants.gatk.flt, gt_AR != 0, !is.na(gt_AR))
+
+
+vcf.tbl.q.g %>% 
+  dplyr::mutate(tag=if_else(freq == length(unique(sample_sheet$sample)), "common", "noCommon")) %>% 
+  dplyr::select(ID, Indiv, var_type, tag) %>%
+  dplyr::mutate(Indiv=if_else(tag == "common", "common", Indiv)) %>% unique() %>%
+  ggplot() + geom_bar(aes(x=Indiv, fill=var_type)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  xlab("") + ylab("nb of variants")
+
+```
+* common : les variants communs à tous les échantillons.
+
+### Variant frequency in samples
+
+```{r }
+
+p <- vcf.tbl.q.g %>% dplyr::select(Indiv, freq, ID) %>% group_by(Indiv, freq) %>% 
+  dplyr::count(name = "nb_var")  %>% filter(freq != length(unique(sample_sheet$sample))) %>% 
+  ggplot(aes(x=as.factor(freq), y=nb_var)) + geom_boxplot(outlier.shape = NA) +
+  geom_point(size = 0.8, aes(color=Indiv), position=position_jitter(width = 0.2)) + xlab("freq in samples") + ylab("# variants")
+
+if (length(unique(vcf.tbl.q.g$Indiv)) > 15){
   
-  vcfR.tid.list <- lapply(unique(vcfR.tid.tmp$nb.allele), function(x){
-    
-    tmp <- vcfR.tid.tmp %>% dplyr::filter(nb.allele == x) %>%
-      tidyr::separate(col = gt_AD, into = c("gt_ref_AD", paste0("gt_alt_AD",1:x)), sep = ",", remove = FALSE) %>%
-      tidyr::separate(col = ALT,   into = paste0("ALT" ,1:x), sep = ",", remove = FALSE) %>%
-      tidyr::separate(col = AC,    into = paste0("AC" ,1:x),  sep = ",", remove = FALSE) %>%
-      tidyr::separate(col = AF,    into = paste0("AF" ,1:x),  sep = ",", remove = FALSE) %>%
-      tidyr::separate(col = MLEAF, into = paste0("MLEAF" ,1:x),  sep = ",", remove = FALSE) %>%
-      tidyr::separate(col = MLEAC, into = paste0("MLEAC" ,1:x),  sep = ",", remove = FALSE)
-    
-    tmp.list <- lapply(1:x, FUN = function(i){ 
-    
-        tmp.split <- dplyr::mutate(tmp,  gt_alt_AD = as.numeric(get(paste0("gt_alt_AD", i))) ,
-                                         gt_AR     = as.numeric(get(paste0("gt_alt_AD", i)))/gt_DP, 
-                                         ID_old    = ID,
-                                         gt_AD_old = gt_AD, gt_AD = paste0(gt_ref_AD, ",", get(paste0("gt_alt_AD", i))),
-                                         ALT_old   = ALT,   ALT   = get(paste0("ALT", i)),
-                                         AC_old    = AC,    AC    = get(paste0("AC", i)),
-                                         AF_old    = AF,    AF    = get(paste0("AF", i)),
-                                         MLEAF_old = MLEAF, MLEAF = get(paste0("MLEAF", i)),
-                                         MLEAC_old = MLEAC, MLEAC = get(paste0("MLEAC", i)),
-                                         ID = paste(CHROM, POS, REF, ALT, sep="_"),
-                                   ) %>%
-        dplyr::select(-gt_ref_AD, 
-                      -paste0("ALT", 1:x), 
-                      -paste0("gt_alt_AD", 1:x),  
-                      -paste0("AC", 1:x),
-                      -paste0("AF", 1:x),
-                      -paste0("MLEAF", 1:x),
-                      -paste0("MLEAC", 1:x)) %>%
-        dplyr::filter(ALT != "*")
-        
-        })
-    
-        return(tmp.list %>% purrr::reduce(rbind))
-    })
-  
-    return(purrr::reduce(vcfR.tid.list, rbind))
+  p <- p + theme(legend.position="none")
 }
+print(p)
+
+# warning -> samples with the same variants or pas de variant
 ```
 
-```{r , echo=FALSE, warning=FALSE, error=FALSE}
-haplotype_caller<-paste0(workspace,"/03_snv_indels_calling/",config_ad$project_name,"_snv_indel.vcf")
-vcfR.inst <- vcfR::read.vcfR(haplotype_caller)
+### Substitution
 
-vcfR.tid.list <- vcfR::vcfR2tidy(vcfR.inst)
+```{r}
 
-vcfR.tid <- full_join(vcfR.tid.list$fix, vcfR.tid.list$gt, by = c("ChromKey", "POS")) %>% 
-            dplyr::mutate(ID = dplyr::if_else(is.na(ID), paste(CHROM, POS, REF, ALT, sep="_"), ID)) 
+p <- vcf.tbl.q.g %>% dplyr::filter(var_type == "SNV", str_length(ALT) == 1) %>% 
+  dplyr::select(ALT, REF, Indiv) %>% group_by(ALT, REF, Indiv) %>% 
+  dplyr::count(name = "nb_sub") %>% 
+  ggplot(aes(x=paste(REF, ALT, sep=">"), y=nb_sub)) + geom_boxplot(outlier.shape = NA) +
+  geom_point(size = 0.8, aes(color=Indiv), position=position_jitter(width = 0.2)) + 
+  facet_grid(~paste0("REF : ",REF), scales = "free") + labs(x="", y="nb of variants", color="samples")
 
-variants <- vcfR_split_multiAlt(vcfR.tid) %>%
-  dplyr::mutate(gt_AR_corr = dplyr::if_else(gt_AR < AR.min, 0, gt_AR),
-         gt_AR_corr = dplyr::if_else(gt_DP < 4,   0, gt_AR_corr),
-         gt_DP_corr = dplyr::if_else(gt_DP < 4,   0, as.numeric(gt_DP)),
-         var_type   = dplyr::if_else(str_length(REF) == str_length(ALT), "SNV", dplyr::if_else(str_length(REF) > str_length(ALT), "DEL", "INS")),
-         var_length = str_length(ALT) - str_length(REF),
-         var_class  = dplyr::if_else(var_length == 0, var_type, 
-                      dplyr::if_else(abs(var_length) == 1,  paste0(var_type, "1"),
-                      dplyr::if_else(abs(var_length) >  50, paste0(var_type, ">50"), paste0(var_type, "<50"))))) 
+if (length(unique(vcf.tbl.q.g$Indiv)) > 15){
+  
+  p <- p + theme(legend.position="none")
+}
+print(p)
 
-variants.control <- variants %>% filter(Indiv %in% dplyr::filter(sample_sheet, condition == "WT")$plant, gt_AR_corr > 0) 
-variants.freq_corr <- variants %>% filter(gt_AR_corr > 0, !is.na(gt_AR_corr)) %>% 
-  select(ID, Indiv, target,amplicon) %>% unique() %>% group_by(ID, target,amplicon) %>% count(name="freq")
+```
 
-variants <- variants %>% dplyr::filter(!ID %in% variants.control$ID) %>% dplyr::full_join(variants.freq_corr, by = c("ID", "target","amplicon"))
-#DT::datatable(variants)
+### Clustering per condition
+
+```{r}
+vcf.tbl.q.g.condition <- vcf.tbl.q.g %>% 
+  dplyr::full_join(dplyr::select(sample_sheet, sample, condition), by = c("Indiv" = "sample")) %>% 
+  tidyr::separate(ANN, c("tmp1", "effect", "tmp2", "gene"), sep = "[|]", extra = "drop") %>% dplyr::select(-tmp1, -tmp2)
+
+tb <- vcf.tbl.q.g.condition %>%  
+  dplyr::select(ID, condition) %>% 
+  dplyr::group_by(ID, condition) %>% unique() %>% 
+  reshape2::dcast(ID~condition, value.var = "condition") %>%
+  dplyr::mutate_at(.vars = names(.)[-1], .funs = function(x){if_else(is.na(x), 0, 1)})
+
+venn::venn(tb[,-1])
+```
+
+### Clustering per sample
+
+
+```{r }
+
+df <- vcf.tbl.q.g %>% dplyr::filter( freq != length(unique(sample_sheet$sample))) %>% dplyr::select(ID, gt_AR, Indiv) %>% 
+  reshape2::dcast(ID~Indiv , value.var = "gt_AR") 
+
+# calcul la distance entre les lignes de la matrice
+# vcf.tidy.bin[,-1] : sans la 1ere colonne qui contient les IDs
+dist  <- dist(t(df[,-1]), method = "euclidean")
+
+# clustering hiérarchique
+hc    <- hclust(dist)
+
+# arranger la structure du dendrogramme
+dend  <- as.dendrogram(hc)
+
+col.rainbow <- colorspace::rainbow_hcl(length(unique(sample_sheet$condition)))
+
+
+col <- col.rainbow[as.factor(sample_sheet$condition)]
+names(col) <- sample_sheet$sample
+
+labels_colors(dend) <- col[order.dendrogram(dend)]
+# dessiner le dendrogramme
+plot(dend, main = "Sample clustering using all variants")
+```
+
+
+
+```{r, eval=FALSE}
+## annotations
+
+colname.ANN <- c("Allele", "effect", "impact", "GeneName", 
+                 "GeneID", "FeatureType", "FeatureID", "TranscriptBiotype", 
+                 "Rank", "HGVS.c", "HGVS.p", "cDNA_len:", 
+                 "CDS_len", "Protein_len", "DistanceToFeature", "Warnings")
+
+exlude_effect <- c("upstream_gene_variant", "downstream_gene_variant", "intergenic_region", "intragenic_variant", "intragenic_variant", 
+                   "3_prime_UTR_variant", "", "", "")
+
+ID.ANN <- vcf.tbl.q.g %>% dplyr::select(ID, ANN) %>% unique() 
+
+
+ANN.split <- lapply(1:dim(ID.ANN)[1], FUN = function(x){
+  
+  tmp <- ID.ANN$ANN[x] %>% str_split(",") %>% unlist()
+  data.frame(ID = rep(ID.ANN$ID[x], length(tmp)), ANN = tmp)
+  
+}) %>% purrr::reduce(rbind) %>% 
+  tidyr::separate(col = ANN, into = colname.ANN, sep = "[|]") %>% 
+  dplyr::filter(!effect %in% exlude_effect) %>% 
+  dplyr::select(ID, effect) %>% unique()
+
+effect.split <- lapply(1:dim(ANN.split)[1], function(x){
+  
+  tmp <- ANN.split$effect[x] %>% stringr::str_split("&") %>% unlist()
+  data.frame(ID = rep(ANN.split$ID[x], length(tmp)), effect = tmp)
+}) %>% purrr::reduce(rbind)
+
+
+effect.split %>% dplyr::group_by(effect) %>% dplyr::count()
+
 ```
