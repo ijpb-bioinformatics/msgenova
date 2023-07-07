@@ -210,7 +210,7 @@ cov %>% dplyr::select(sample, rname, `meandepth(X)`, `coverage(%)`) %>%
 
 # Small variant calling step (GATK)
 ```{r}
-vcf.file <- paste0(workspace,"/03_snv_indels_calling/", projectName , "_snv_indel.vcf")
+vcf.file <- list.files(path = paste0(workspace,"/03_snv_indels_calling"), pattern = "_snv_indel.vcf" , full.names = T)
 if(!file.exists(vcf.file)) stop("Error: ")
 ```
 
