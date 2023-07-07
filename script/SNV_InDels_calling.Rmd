@@ -480,6 +480,15 @@ gatk_var_PE_SPE %>% dplyr::select(-ID, -FILTER, -AC, -MQ, -gt_ref_AD, -gt_GT_all
                 class = 'cell-border stripe', caption = "")
 ```
 
+```{r}
+
+write.table(x = rbind(gatk_var_WT, gatk_var_Pro, gatk_var_T, gatk_var_PE, gatk_var_SPE, gatk_var_PE_SPE),
+            file = paste0(workspace, "/potentiel_mutations.xls"),
+            sep = "\t", quote = F, row.names = F)
+
+```
+
+
 
 
 # Small variant calling step (Varscan)
