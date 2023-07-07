@@ -151,5 +151,5 @@ rule report:
 	resources:
 		mem_mb=get_mem("report")
 	shell:
-		"Rscript -e \"rmarkdown::render('{params.workdir}/script/report.Rmd', output_file = '{params.wd}/{output}', intermediates_dir='{params.wd}/results',  params = list(result_dir='{params.wd}/results/', DP.min='{params.DP_min}', AR.min='{params.AR_min}',qual.min='30', projectName='NAME_PROJECT', AR='{params.AR}'))\""
+		"Rscript -e \"rmarkdown::render('{params.workdir}/script/report.Rmd', output_file = '{params.wd}/{output}', intermediates_dir='{params.wd}/results',  params = list(result_dir='{params.wd}/results/', DP.min='{params.DP_min}', AR.min='{params.AR_min}',qual.min='30', projectName='NAME_PROJECT', sample_sheet=config["sample"], AR='{params.AR}'))\""
 		# "Rscript -e \"rmarkdown::render('/save/project/ijpb/bioinfo-code/src/essai_report.Rmd', output_file = '{params.wd}/{output}', params = list(result_dir='/work/gadam/msgenova_reduce/results/', DP.min='5', AR.min='0.2'),intermediates_dir='{params.wd}/results/')\""
